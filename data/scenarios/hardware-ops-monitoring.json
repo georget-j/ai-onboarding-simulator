@@ -1,0 +1,335 @@
+{
+  "id": "hardware-ops",
+  "name": "Atlas Robotics — Incident Triage",
+  "scenarioType": "hardware_ops",
+  "status": "discovery",
+  "createdAt": "2026-05-01T09:00:00Z",
+  "updatedAt": "2026-05-01T09:00:00Z",
+  "customer": {
+    "companyName": "Atlas Robotics",
+    "industry": "industrial",
+    "companySize": "mid_market",
+    "primaryUseCase": "AI-assisted remote incident triage for field devices",
+    "businessProblem": "Support engineering teams are overwhelmed diagnosing device errors across 800+ distributed robot deployments. Median time to diagnosis is 4.5 hours. First-time fix rate is 58%. Teams are escalating too many incidents to senior engineers.",
+    "desiredOutcome": "Reduce median incident triage time to under 90 minutes. Improve first-time fix rate to 75%. Reduce senior engineer escalations by 30%.",
+    "urgency": "high",
+    "regulatoryContext": ["ISO 13849", "CE marking", "PUWER"],
+    "technicalMaturity": "high"
+  },
+  "discovery": {
+    "currentProcess": "Field technicians submit incident tickets via Zendesk with a device ID and error description. Support engineers pull telemetry data from the device dashboard, cross-reference maintenance logs, and diagnose manually. Complex cases escalated to senior engineers or product team.",
+    "usersAffected": "14 support engineers, 6 field technicians, 3 senior engineers",
+    "implementationDeadline": "2026-07-31",
+    "constraints": "Device telemetry data is incomplete for older hardware generations. Field technicians have variable technical skill. AI must not create false confidence — reliability expectations are high. Safety-critical decisions must remain human-approved.",
+    "knownRisks": "Incomplete telemetry on legacy hardware. Edge-case device behaviour not in training data. Field technician over-reliance on AI diagnosis. Alert fatigue from noisy telemetry. Reliability expectations create low tolerance for incorrect suggestions.",
+    "successDefinition": "Median triage time under 90 minutes. First-time fix rate 75%. Senior engineer escalations down 30%. No safety-related incidents caused by AI mis-diagnosis.",
+    "buyerTeam": "VP Engineering, Head of Customer Success, Head of Product",
+    "riskLevel": "medium"
+  },
+  "stakeholders": [
+    {
+      "id": "s1",
+      "name": "Marco Ferretti",
+      "role": "VP Engineering",
+      "team": "Engineering",
+      "influence": "high",
+      "involvement": "sponsor",
+      "concerns": ["AI reliability in safety-adjacent context", "Integration with existing telemetry stack", "Engineering team workload"],
+      "requiredActions": ["Approve technical architecture", "Allocate engineering resource for integration", "Sign off on pilot scope"]
+    },
+    {
+      "id": "s2",
+      "name": "Yuki Tanaka",
+      "role": "Head of Customer Success",
+      "team": "Customer Success",
+      "influence": "high",
+      "involvement": "business_owner",
+      "concerns": ["Customer-facing SLA impact", "Field technician adoption", "False diagnosis reaching customers"],
+      "requiredActions": ["Define SLA improvement targets", "Communicate to field technicians", "Own pilot evaluation"]
+    },
+    {
+      "id": "s3",
+      "name": "Priya Nair",
+      "role": "Lead Support Engineer",
+      "team": "Support Engineering",
+      "influence": "medium",
+      "involvement": "technical_owner",
+      "concerns": ["Telemetry data gaps in legacy hardware", "Alert noise", "Correct diagnosis rate"],
+      "requiredActions": ["Map telemetry fields to failure modes", "Validate AI suggestions against known cases", "Define escalation protocol"]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "w1",
+      "name": "Incident Ticket Submission",
+      "description": "Field technician or customer submits incident via Zendesk. Device ID and error description captured.",
+      "ownerTeam": "Field / Customer",
+      "currentSystem": "Zendesk",
+      "inputData": ["Device ID", "Error code", "Description", "Customer site"],
+      "outputArtifact": ["Zendesk ticket", "Assignment to support engineer"],
+      "painPoints": ["Error descriptions are vague", "Device ID sometimes incorrect", "No telemetry attached at intake"],
+      "manualEffort": "low",
+      "frequency": "daily",
+      "failureModes": ["Missing device ID", "Duplicate tickets", "Wrong priority assigned"],
+      "automationPotential": "medium",
+      "futureState": "automated"
+    },
+    {
+      "id": "w2",
+      "name": "Telemetry Pull and Review",
+      "description": "Support engineer pulls device telemetry from dashboard and reviews error logs for the preceding 24 hours.",
+      "ownerTeam": "Support Engineering",
+      "currentSystem": "Atlas Device Dashboard",
+      "inputData": ["Device ID", "Telemetry data (24h)", "Error logs"],
+      "outputArtifact": ["Telemetry summary", "Candidate failure modes"],
+      "painPoints": ["Dashboard is slow for large data volumes", "Legacy devices have incomplete telemetry", "No automatic anomaly detection"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Missing telemetry on legacy hardware", "Data volume overwhelming", "Anomalies missed in noise"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w3",
+      "name": "Diagnosis and Fix Recommendation",
+      "description": "Support engineer reviews maintenance logs and customer notes to diagnose root cause and recommend fix.",
+      "ownerTeam": "Support Engineering",
+      "currentSystem": "Zendesk + maintenance log spreadsheet",
+      "inputData": ["Telemetry summary", "Maintenance logs", "Historical incident data", "Technical documentation"],
+      "outputArtifact": ["Diagnosis", "Recommended fix", "Parts required"],
+      "painPoints": ["Maintenance logs are in spreadsheets — slow to search", "Historical incident patterns not easily accessible", "Diagnosis inconsistency across engineers"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Incorrect diagnosis", "Repeated escalations for same issue type", "Missing maintenance context"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w4",
+      "name": "Escalation to Senior Engineer",
+      "description": "Complex or ambiguous incidents escalated to senior engineers or product team.",
+      "ownerTeam": "Senior Engineering",
+      "currentSystem": "Zendesk + Slack",
+      "inputData": ["Incident ticket", "Diagnosis attempt", "Telemetry data"],
+      "outputArtifact": ["Senior engineer diagnosis", "Escalation notes"],
+      "painPoints": ["Senior engineers spend 40% of time on escalations", "Context not well captured for escalations", "Repeated escalations for known issues"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Senior engineer capacity constraint", "Slow escalation response", "Context lost in Slack"],
+      "automationPotential": "low",
+      "futureState": "requires_approval"
+    }
+  ],
+  "systems": [
+    {
+      "id": "sys1",
+      "name": "Atlas Device Dashboard",
+      "type": "custom",
+      "owner": "Engineering",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "API key",
+      "dataSensitivity": "medium",
+      "integrationComplexity": "medium",
+      "notes": "Internal telemetry platform. REST API available. Legacy hardware (Gen 1, 2) has limited telemetry fields. Gen 3+ has full sensor coverage."
+    },
+    {
+      "id": "sys2",
+      "name": "Zendesk",
+      "type": "ticketing",
+      "owner": "Customer Success",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "API token",
+      "dataSensitivity": "low",
+      "integrationComplexity": "low",
+      "notes": "Standard Zendesk API. Well-documented. Webhook support available for real-time integration."
+    },
+    {
+      "id": "sys3",
+      "name": "Maintenance Logs",
+      "type": "other",
+      "owner": "Support Engineering",
+      "accessMethod": "csv_export",
+      "apiAvailable": false,
+      "authenticationMethod": "",
+      "dataSensitivity": "low",
+      "integrationComplexity": "high",
+      "notes": "Currently in Excel spreadsheets maintained per device. ~5 years of records. Inconsistent format across hardware generations. Migration to structured format needed."
+    },
+    {
+      "id": "sys4",
+      "name": "Technical Documentation",
+      "type": "document_management",
+      "owner": "Engineering",
+      "accessMethod": "manual_upload",
+      "apiAvailable": false,
+      "authenticationMethod": "",
+      "dataSensitivity": "low",
+      "integrationComplexity": "low",
+      "notes": "Confluence wiki. PDF manuals for each hardware model. Well-maintained for Gen 3+. Gaps for Gen 1 and 2."
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "ds1",
+      "name": "Device Telemetry",
+      "sourceSystem": "Atlas Device Dashboard",
+      "dataType": "logs",
+      "format": "api",
+      "quality": "mixed",
+      "volumeEstimate": "800+ devices, ~10k events/device/day",
+      "updateFrequency": "Real-time",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Which telemetry fields are available on Gen 1/2?", "What is the data retention period?", "Are anomaly events pre-labelled?"]
+    },
+    {
+      "id": "ds2",
+      "name": "Historical Incident Records",
+      "sourceSystem": "Zendesk",
+      "dataType": "tickets",
+      "format": "api",
+      "quality": "good",
+      "volumeEstimate": "~12,000 incidents over 3 years",
+      "updateFrequency": "Real-time",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Are resolution notes consistently populated?", "Are root cause codes standardised?"]
+    },
+    {
+      "id": "ds3",
+      "name": "Maintenance Logs",
+      "sourceSystem": "Maintenance Logs",
+      "dataType": "logs",
+      "format": "csv",
+      "quality": "poor",
+      "volumeEstimate": "~5 years of records per device",
+      "updateFrequency": "Per maintenance visit",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Can formats be standardised before ingestion?", "Are Gen 1 and 2 records complete?"]
+    }
+  ],
+  "requirements": [],
+  "risks": [
+    {
+      "id": "r1",
+      "title": "Incomplete telemetry on legacy hardware",
+      "description": "Gen 1 and 2 devices have limited sensor coverage. AI diagnosis quality will be lower for ~35% of the fleet.",
+      "category": "data_readiness",
+      "severity": "high",
+      "likelihood": "high",
+      "owner": "Priya Nair",
+      "mitigation": "Segment analysis by hardware generation. Set lower confidence thresholds for legacy hardware. Surface data gap warnings in the UI. Prioritise Gen 3+ for pilot.",
+      "escalationTrigger": "AI confidence below threshold on more than 40% of legacy device incidents",
+      "status": "open"
+    },
+    {
+      "id": "r2",
+      "title": "Alert fatigue from telemetry noise",
+      "description": "High volume of telemetry events may produce noisy AI suggestions, reducing trust and adoption.",
+      "category": "operational_adoption",
+      "severity": "medium",
+      "likelihood": "high",
+      "owner": "Yuki Tanaka",
+      "mitigation": "Filter to high-signal events before AI processing. Show top 3 candidate diagnoses with confidence scores. Allow engineers to rate AI suggestions.",
+      "escalationTrigger": "Engineer rating of AI suggestions falls below 3/5 average",
+      "status": "open"
+    },
+    {
+      "id": "r3",
+      "title": "Field technician over-reliance on AI diagnosis",
+      "description": "Field technicians may act on AI suggestions without adequate review, causing incorrect repairs.",
+      "category": "operational_adoption",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner": "Yuki Tanaka",
+      "mitigation": "AI suggestions are for support engineers only — not directly visible to field technicians. Engineers must confirm before dispatching fix.",
+      "escalationTrigger": "Any incorrect field repair traced to un-reviewed AI suggestion",
+      "status": "open"
+    },
+    {
+      "id": "r4",
+      "title": "Maintenance logs unstructured and inconsistent",
+      "description": "Excel-based maintenance logs require significant cleanup before they can be used as training or retrieval data.",
+      "category": "data_readiness",
+      "severity": "medium",
+      "likelihood": "high",
+      "owner": "Priya Nair",
+      "mitigation": "Data engineering sprint to normalise maintenance logs before pilot. Define structured schema. Assign ongoing ownership.",
+      "escalationTrigger": "Maintenance log processing error rate above 15%",
+      "status": "open"
+    },
+    {
+      "id": "r5",
+      "title": "Edge-case device behaviour not in training data",
+      "description": "Rare failure modes may not have sufficient historical examples for reliable AI pattern matching.",
+      "category": "model_quality",
+      "severity": "medium",
+      "likelihood": "medium",
+      "owner": "Marco Ferretti",
+      "mitigation": "Curate edge-case library with senior engineers. Flag low-precedent diagnoses explicitly. Route low-confidence cases to senior engineer review.",
+      "escalationTrigger": "Two or more identical incorrect diagnoses on rare failure mode",
+      "status": "open"
+    }
+  ],
+  "pilotPlan": {
+    "objective": "Validate AI-assisted diagnosis reduces median triage time and improves first-time fix rate on Gen 3 devices.",
+    "scope": "Gen 3 devices only. Support engineer-facing only — not visible to field technicians. Mechanical and sensor failure categories only (excludes firmware and connectivity).",
+    "pilotUsers": ["Priya Nair", "3 support engineers (TBC)"],
+    "includedWorkflows": ["Telemetry Pull and Review", "Diagnosis and Fix Recommendation"],
+    "excludedWorkflows": ["Incident Ticket Submission", "Escalation to Senior Engineer"],
+    "durationWeeks": 4,
+    "successMetrics": [
+      {
+        "id": "m1",
+        "name": "Median incident triage time",
+        "baseline": "4.5 hours",
+        "target": "90 minutes",
+        "measurementMethod": "Zendesk ticket timestamps from open to resolution",
+        "owner": "Yuki Tanaka"
+      },
+      {
+        "id": "m2",
+        "name": "First-time fix rate",
+        "baseline": "58%",
+        "target": "75%",
+        "measurementMethod": "Zendesk reopen rate within 7 days of resolution",
+        "owner": "Yuki Tanaka"
+      },
+      {
+        "id": "m3",
+        "name": "Senior engineer escalation rate",
+        "baseline": "42% of tickets escalated",
+        "target": "30% of tickets escalated",
+        "measurementMethod": "Zendesk escalation tag count",
+        "owner": "Marco Ferretti"
+      },
+      {
+        "id": "m4",
+        "name": "AI suggestion quality rating",
+        "baseline": "N/A",
+        "target": "3.5/5 average",
+        "measurementMethod": "In-app rating per AI suggestion",
+        "owner": "Priya Nair"
+      }
+    ],
+    "launchCriteria": [
+      "Gen 3 telemetry API integration tested",
+      "Zendesk webhook integration tested",
+      "Maintenance log normalisation complete for Gen 3 devices",
+      "Support engineer training completed",
+      "Safety review of AI output scope approved by VP Engineering"
+    ],
+    "rollbackCriteria": [
+      "Any safety-related incident linked to AI suggestion",
+      "First-time fix rate drops below baseline during pilot",
+      "AI suggestion quality rating below 2.5/5 for 5 consecutive days",
+      "Telemetry API failure lasting more than 2 hours"
+    ],
+    "baselineMeasurement": "4 weeks of Zendesk data reviewed for triage time, fix rate, and escalation rate. Gen 3 devices only.",
+    "targetOutcome": "Median triage time under 90 minutes. First-time fix rate 75%. Senior escalations down 30%. AI suggestion rating above 3.5/5."
+  },
+  "outputs": null
+}

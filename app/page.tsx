@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const OUTPUTS = [
@@ -46,12 +46,12 @@ export default function Home() {
           success metrics, and more.
         </p>
         <div className="flex items-center gap-3 pt-2">
-          <Button asChild size="lg">
-            <Link href="/scenarios">Browse Scenarios</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/workspace/custom">Start Custom Project</Link>
-          </Button>
+          <Link href="/scenarios" className={buttonVariants({ size: "lg" })}>
+            Browse Scenarios
+          </Link>
+          <Link href="/workspace/custom" className={buttonVariants({ variant: "outline", size: "lg" })}>
+            Start Custom Project
+          </Link>
         </div>
       </section>
 

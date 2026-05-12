@@ -1,0 +1,423 @@
+{
+  "id": "fintech-aml",
+  "name": "Meridian Bank — AML Case Triage",
+  "scenarioType": "fintech_aml",
+  "status": "discovery",
+  "createdAt": "2026-05-01T09:00:00Z",
+  "updatedAt": "2026-05-01T09:00:00Z",
+  "customer": {
+    "companyName": "Meridian Bank",
+    "industry": "fintech",
+    "companySize": "enterprise",
+    "primaryUseCase": "AI-assisted AML case triage",
+    "businessProblem": "AML review teams are overwhelmed by manual case review. Analysts spend 70% of their time on low-risk cases that could be auto-triaged, leaving insufficient capacity for complex escalations. Inconsistent escalation quality is creating compliance risk.",
+    "desiredOutcome": "Reduce average AML case review time by 40%, improve escalation consistency, maintain full human approval on all cases, and produce audit-ready documentation automatically.",
+    "urgency": "high",
+    "regulatoryContext": ["FCA", "FATF", "GDPR", "PSD2"],
+    "technicalMaturity": "medium"
+  },
+  "discovery": {
+    "currentProcess": "Analysts manually review all flagged transaction alerts in the case management system. Each case requires pulling customer profile data, reviewing transaction history, checking against sanctions lists, and writing a narrative summary. Cases are escalated to senior analysts or SAR teams based on individual judgement.",
+    "usersAffected": "18 AML analysts, 4 senior AML officers, 2 compliance managers, 1 MLRO",
+    "implementationDeadline": "2026-09-30",
+    "constraints": "Regulated environment — all model outputs require human sign-off. Full audit trail required for every decision. Data cannot leave the EU. Model must be explainable to regulators. Security review required before any system integration.",
+    "knownRisks": "Model false negatives creating compliance exposure. Regulator scrutiny of AI in financial crime. Analyst trust and adoption. Explainability of AI recommendations. Data quality in legacy case management system.",
+    "successDefinition": "40% reduction in average case review time. Escalation consistency score above 85%. Zero cases processed without human approval. Audit documentation completeness above 95%.",
+    "buyerTeam": "Chief Compliance Officer, Head of Financial Crime, IT Director",
+    "riskLevel": "high"
+  },
+  "stakeholders": [
+    {
+      "id": "s1",
+      "name": "Patricia Owens",
+      "role": "Chief Compliance Officer",
+      "team": "Compliance",
+      "influence": "high",
+      "involvement": "sponsor",
+      "concerns": ["Regulatory exposure from AI errors", "Audit trail completeness", "FCA scrutiny"],
+      "requiredActions": ["Sign off on pilot scope", "Approve model explainability approach", "Briefing for MLRO"]
+    },
+    {
+      "id": "s2",
+      "name": "James Nkosi",
+      "role": "Head of Financial Crime",
+      "team": "Financial Crime",
+      "influence": "high",
+      "involvement": "business_owner",
+      "concerns": ["False negative rate", "Analyst workflow disruption", "Escalation quality"],
+      "requiredActions": ["Define acceptable false negative threshold", "Approve workflow integration design", "Pilot user selection"]
+    },
+    {
+      "id": "s3",
+      "name": "Ade Mensah",
+      "role": "IT Director",
+      "team": "Technology",
+      "influence": "medium",
+      "involvement": "technical_owner",
+      "concerns": ["Data residency", "Security review timeline", "Integration complexity with legacy CMS"],
+      "requiredActions": ["Complete security review", "Provide API access to case management system", "Confirm data residency controls"]
+    },
+    {
+      "id": "s4",
+      "name": "Sioned Williams",
+      "role": "Lead AML Analyst",
+      "team": "Financial Crime",
+      "influence": "medium",
+      "involvement": "end_user",
+      "concerns": ["AI overriding analyst judgement", "Increased workload during transition", "Trust in AI recommendations"],
+      "requiredActions": ["Participate in pilot", "Provide feedback on UX", "Train peer analysts"]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "w1",
+      "name": "Alert Intake",
+      "description": "Transaction monitoring system generates alerts. Alerts are assigned to analysts in the case management system.",
+      "ownerTeam": "Financial Crime Operations",
+      "currentSystem": "Actimize Case Manager",
+      "inputData": ["Transaction alert", "Customer ID", "Alert risk score"],
+      "outputArtifact": ["Case record", "Analyst assignment"],
+      "painPoints": ["Alert volume spikes unpredictably", "Assignment is manual and unbalanced", "No prioritisation logic"],
+      "manualEffort": "medium",
+      "frequency": "daily",
+      "failureModes": ["Analyst queue overflow", "Delayed case pickup", "Uneven workload distribution"],
+      "automationPotential": "high",
+      "futureState": "automated"
+    },
+    {
+      "id": "w2",
+      "name": "Case Prioritisation",
+      "description": "Analyst reviews alert and assigns initial risk priority before starting investigation.",
+      "ownerTeam": "Financial Crime Operations",
+      "currentSystem": "Actimize Case Manager",
+      "inputData": ["Alert metadata", "Customer risk rating", "Historical case data"],
+      "outputArtifact": ["Priority classification", "Investigation plan"],
+      "painPoints": ["Inconsistent priority assignment across analysts", "No structured framework", "Relies on analyst experience"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Mis-prioritisation of high-risk cases", "Inconsistent quality", "Senior review bottlenecks"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w3",
+      "name": "Customer and Transaction Review",
+      "description": "Analyst pulls customer profile, reviews transaction history, and checks sanctions/PEP lists.",
+      "ownerTeam": "Financial Crime Operations",
+      "currentSystem": "Multiple — Actimize, internal CRM, World-Check",
+      "inputData": ["Customer profile", "Transaction history (90 days)", "Sanctions/PEP lists", "Previous case history"],
+      "outputArtifact": ["Review notes", "Risk indicators identified"],
+      "painPoints": ["Data is spread across 4 systems", "Manual copy-paste between systems", "Sanctions check is manual", "Takes 45-60 minutes per case"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Missed risk indicators", "Data entry errors", "Incomplete sanctions check"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w4",
+      "name": "Narrative and Decision",
+      "description": "Analyst writes case narrative, records decision rationale, and either closes or escalates the case.",
+      "ownerTeam": "Financial Crime Operations",
+      "currentSystem": "Actimize Case Manager",
+      "inputData": ["Review notes", "Risk indicators", "Policy documents"],
+      "outputArtifact": ["Case narrative", "Decision record", "Escalation (if required)"],
+      "painPoints": ["Narrative quality varies significantly", "Policy lookup is manual", "No structured decision framework"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Inconsistent narratives", "Missing policy citations", "Escalation decisions not documented"],
+      "automationPotential": "medium",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w5",
+      "name": "Escalation and SAR Filing",
+      "description": "Senior analyst reviews escalated cases and determines if a SAR should be filed.",
+      "ownerTeam": "Senior Financial Crime Team",
+      "currentSystem": "Actimize Case Manager + SAR portal",
+      "inputData": ["Escalated case record", "Case narrative", "Supporting evidence"],
+      "outputArtifact": ["SAR decision", "Filed SAR (if applicable)", "Case closure record"],
+      "painPoints": ["Escalation quality is inconsistent", "Senior team is the bottleneck", "SAR documentation is time-consuming"],
+      "manualEffort": "high",
+      "frequency": "weekly",
+      "failureModes": ["Delayed SAR filing", "Missing evidence in SAR", "Regulatory deadline breaches"],
+      "automationPotential": "low",
+      "futureState": "requires_approval"
+    }
+  ],
+  "systems": [
+    {
+      "id": "sys1",
+      "name": "Actimize Case Manager",
+      "type": "case_management",
+      "owner": "IT / Financial Crime",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "OAuth2 service account",
+      "dataSensitivity": "regulated",
+      "integrationComplexity": "high",
+      "notes": "Core system. REST API available but documentation is incomplete. Rate limits apply. Security review required."
+    },
+    {
+      "id": "sys2",
+      "name": "Transaction Monitoring Platform",
+      "type": "core_system",
+      "owner": "IT",
+      "accessMethod": "csv_export",
+      "apiAvailable": false,
+      "authenticationMethod": "",
+      "dataSensitivity": "regulated",
+      "integrationComplexity": "high",
+      "notes": "No API available. Data exported as CSV daily. Batch processing only. API roadmap is 18 months out."
+    },
+    {
+      "id": "sys3",
+      "name": "Customer Profile Database",
+      "type": "core_system",
+      "owner": "IT",
+      "accessMethod": "database",
+      "apiAvailable": "unknown",
+      "authenticationMethod": "",
+      "dataSensitivity": "regulated",
+      "integrationComplexity": "high",
+      "notes": "Legacy Oracle DB. Read-only access may be available. IT to confirm. GDPR constraints on data access."
+    },
+    {
+      "id": "sys4",
+      "name": "World-Check (Sanctions / PEP)",
+      "type": "other",
+      "owner": "Financial Crime",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "API key",
+      "dataSensitivity": "regulated",
+      "integrationComplexity": "medium",
+      "notes": "Refinitiv World-Check API. Licence already held. Integration is standard."
+    },
+    {
+      "id": "sys5",
+      "name": "Compliance Policy Document Store",
+      "type": "document_management",
+      "owner": "Compliance",
+      "accessMethod": "manual_upload",
+      "apiAvailable": false,
+      "authenticationMethod": "",
+      "dataSensitivity": "medium",
+      "integrationComplexity": "low",
+      "notes": "SharePoint-based. No API. Policy PDFs will need to be ingested manually. Versioning is a concern."
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "ds1",
+      "name": "Transaction Alerts Export",
+      "sourceSystem": "Transaction Monitoring Platform",
+      "dataType": "transactions",
+      "format": "csv",
+      "quality": "mixed",
+      "volumeEstimate": "200-400 alerts/day",
+      "updateFrequency": "Daily batch at 06:00",
+      "pii": true,
+      "accessStatus": "available",
+      "openQuestions": ["Is full 90-day transaction history included?", "What is the format for flagged fields?"]
+    },
+    {
+      "id": "ds2",
+      "name": "Customer Profile Records",
+      "sourceSystem": "Customer Profile Database",
+      "dataType": "customer_records",
+      "format": "database",
+      "quality": "poor",
+      "volumeEstimate": "2.1M customer records",
+      "updateFrequency": "Real-time",
+      "pii": true,
+      "accessStatus": "pending",
+      "openQuestions": ["What fields are available?", "Are historical records included?", "GDPR lawful basis for AI processing?"]
+    },
+    {
+      "id": "ds3",
+      "name": "Historical Case Records",
+      "sourceSystem": "Actimize Case Manager",
+      "dataType": "documents",
+      "format": "database",
+      "quality": "good",
+      "volumeEstimate": "3 years of cases, ~50k records",
+      "updateFrequency": "Real-time",
+      "pii": true,
+      "accessStatus": "pending",
+      "openQuestions": ["Are analyst narrative notes included?", "Are SAR decisions labelled?"]
+    },
+    {
+      "id": "ds4",
+      "name": "Compliance Policy Documents",
+      "sourceSystem": "Compliance Policy Document Store",
+      "dataType": "documents",
+      "format": "pdf",
+      "quality": "good",
+      "volumeEstimate": "~120 policy documents",
+      "updateFrequency": "Quarterly updates",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Which version is current?", "How are policy updates communicated?"]
+    }
+  ],
+  "requirements": [],
+  "risks": [
+    {
+      "id": "r1",
+      "title": "Model false negatives — missed financial crime",
+      "description": "AI triage may miss genuine AML cases, creating regulatory and reputational exposure.",
+      "category": "model_quality",
+      "severity": "critical",
+      "likelihood": "medium",
+      "owner": "James Nkosi",
+      "mitigation": "Define and enforce minimum recall threshold (>99%). All AI recommendations require human sign-off. Weekly model performance review during pilot.",
+      "escalationTrigger": "Any false negative identified during pilot",
+      "status": "open"
+    },
+    {
+      "id": "r2",
+      "title": "Model explainability — regulator challenge",
+      "description": "FCA or internal audit may challenge the basis for AI-assisted triage decisions.",
+      "category": "legal_procurement",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner": "Patricia Owens",
+      "mitigation": "Require structured rationale output per recommendation. Maintain audit trail of AI inputs, outputs, and analyst overrides. Pre-brief FCA relationship manager.",
+      "escalationTrigger": "Any regulator enquiry or internal audit request related to AI decisions",
+      "status": "open"
+    },
+    {
+      "id": "r3",
+      "title": "Transaction monitoring system has no API",
+      "description": "Alert data is CSV batch only. Real-time integration is not possible without 18-month IT roadmap change.",
+      "category": "integration",
+      "severity": "high",
+      "likelihood": "high",
+      "owner": "Ade Mensah",
+      "mitigation": "Design MVP around daily batch processing. Parallel-track API access request with IT leadership.",
+      "escalationTrigger": "Batch processing causes >2 hour delay in case pickup",
+      "status": "open"
+    },
+    {
+      "id": "r4",
+      "title": "Customer profile data quality is poor",
+      "description": "Legacy Oracle DB has incomplete and inconsistent customer records. AI enrichment quality depends on input data quality.",
+      "category": "data_readiness",
+      "severity": "high",
+      "likelihood": "high",
+      "owner": "Ade Mensah",
+      "mitigation": "Data quality audit before pilot launch. Define minimum data completeness threshold. Flag low-quality profiles for manual review.",
+      "escalationTrigger": "Data completeness below 70% on pilot population",
+      "status": "open"
+    },
+    {
+      "id": "r5",
+      "title": "Security review delays",
+      "description": "IT security review is required before any integration. Timeline is unknown and could delay pilot.",
+      "category": "security",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner": "Ade Mensah",
+      "mitigation": "Submit security review documentation immediately. Prepare data processing agreement and architecture overview. Escalate to IT Director if review stalls.",
+      "escalationTrigger": "Security review not started within 2 weeks of project kickoff",
+      "status": "open"
+    },
+    {
+      "id": "r6",
+      "title": "Analyst adoption — trust in AI recommendations",
+      "description": "Analysts may ignore or over-rely on AI recommendations, undermining the intended workflow change.",
+      "category": "operational_adoption",
+      "severity": "medium",
+      "likelihood": "high",
+      "owner": "Sioned Williams",
+      "mitigation": "Co-design recommendation UX with lead analyst. Include training on AI limitations. Track override rate during pilot — target 15-30%.",
+      "escalationTrigger": "Override rate above 60% or below 5% during pilot",
+      "status": "open"
+    },
+    {
+      "id": "r7",
+      "title": "GDPR lawful basis for AI processing of customer data",
+      "description": "Processing PII for AI model inference requires confirmed lawful basis under GDPR Article 6.",
+      "category": "legal_procurement",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner": "Patricia Owens",
+      "mitigation": "Legal review of DPIA. Confirm legitimate interest basis. Ensure data minimisation in model inputs.",
+      "escalationTrigger": "Legal review not complete before any customer data is processed by the model",
+      "status": "open"
+    },
+    {
+      "id": "r8",
+      "title": "Audit trail gaps in current system",
+      "description": "Actimize Case Manager does not automatically log all AI inputs and outputs needed for audit trail.",
+      "category": "support_readiness",
+      "severity": "medium",
+      "likelihood": "medium",
+      "owner": "Ade Mensah",
+      "mitigation": "Design immutable audit log as part of integration. Log: AI input, AI output, analyst decision, and override reason.",
+      "escalationTrigger": "Any audit log gap identified in testing",
+      "status": "open"
+    }
+  ],
+  "pilotPlan": {
+    "objective": "Validate that AI-assisted AML case triage reduces review time by 40% and improves escalation consistency without reducing detection quality.",
+    "scope": "Alert intake and case prioritisation steps only. Customer and transaction review remains fully manual. All cases require human sign-off.",
+    "pilotUsers": ["Sioned Williams", "3 additional AML analysts (TBC)"],
+    "includedWorkflows": ["Alert Intake", "Case Prioritisation"],
+    "excludedWorkflows": ["Customer and Transaction Review", "Narrative and Decision", "Escalation and SAR Filing"],
+    "durationWeeks": 6,
+    "successMetrics": [
+      {
+        "id": "m1",
+        "name": "Average case review time",
+        "baseline": "4.2 hours per case",
+        "target": "2.5 hours per case",
+        "measurementMethod": "Time logged in Actimize Case Manager from case open to decision",
+        "owner": "James Nkosi"
+      },
+      {
+        "id": "m2",
+        "name": "Escalation consistency score",
+        "baseline": "62% agreement between analysts on same cases (blind test)",
+        "target": "85% agreement",
+        "measurementMethod": "Monthly blind calibration exercise — 20 cases reviewed independently by 4 analysts",
+        "owner": "Patricia Owens"
+      },
+      {
+        "id": "m3",
+        "name": "Human approval rate",
+        "baseline": "100%",
+        "target": "100%",
+        "measurementMethod": "Case audit — zero cases without analyst sign-off",
+        "owner": "Patricia Owens"
+      },
+      {
+        "id": "m4",
+        "name": "Analyst override rate",
+        "baseline": "N/A (new metric)",
+        "target": "15-30%",
+        "measurementMethod": "AI recommendation vs analyst decision logged per case",
+        "owner": "Sioned Williams"
+      }
+    ],
+    "launchCriteria": [
+      "Security review completed and approved",
+      "GDPR DPIA signed off by legal",
+      "Actimize Case Manager API integration tested",
+      "Audit log confirmed working end-to-end",
+      "Analyst training completed",
+      "Rollback procedure documented and tested"
+    ],
+    "rollbackCriteria": [
+      "Any false negative identified (missed genuine AML case)",
+      "Audit log gap detected",
+      "Analyst override rate above 60% for 3 consecutive days",
+      "System downtime above 4 hours in any 24-hour period",
+      "Security incident of any kind"
+    ],
+    "baselineMeasurement": "4-week pre-pilot baseline captured from existing Actimize logs. Analyst calibration exercise completed.",
+    "targetOutcome": "40% reduction in case review time. 85% escalation consistency. 100% human approval maintained. Zero audit trail gaps."
+  },
+  "outputs": null
+}

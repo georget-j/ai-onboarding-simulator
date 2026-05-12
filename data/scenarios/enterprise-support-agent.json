@@ -1,0 +1,331 @@
+{
+  "id": "enterprise-support",
+  "name": "Northbridge Insurance — Internal Support Agent",
+  "scenarioType": "enterprise_support",
+  "status": "discovery",
+  "createdAt": "2026-05-01T09:00:00Z",
+  "updatedAt": "2026-05-01T09:00:00Z",
+  "customer": {
+    "companyName": "Northbridge Insurance",
+    "industry": "insurance",
+    "companySize": "enterprise",
+    "primaryUseCase": "AI support agent for internal claims operations",
+    "businessProblem": "Claims operations staff repeatedly ask the same policy interpretation and process questions, creating a high volume of low-value queries for the policy and training teams. Staff have low confidence in answers from colleagues. New joiners take 6-8 weeks to reach productivity.",
+    "desiredOutcome": "Reduce repetitive internal queries by 50%. Improve answer accuracy and consistency. Reduce new joiner ramp time to 4 weeks. Maintain source citations for all answers.",
+    "urgency": "medium",
+    "regulatoryContext": ["FCA", "ICO", "GDPR"],
+    "technicalMaturity": "low"
+  },
+  "discovery": {
+    "currentProcess": "Claims staff ask questions via internal Slack channels or email to policy and training teams. Answers are given ad hoc. No single source of truth. New joiners shadow colleagues and attend a 3-day induction. Policy documents are in SharePoint but difficult to navigate.",
+    "usersAffected": "85 claims handlers, 12 claims managers, 8 policy specialists, 4 trainers",
+    "implementationDeadline": "2026-10-31",
+    "constraints": "Data must stay within the organisation — no external processing of policy content. Agent must cite sources for all answers. Escalation to human expert must be seamless. FCA compliance — advice boundary must be clear (internal process only, not customer-facing). Staff have low technical appetite.",
+    "knownRisks": "Outdated knowledge base content. Permission issues — not all staff can access all policy areas. Inaccurate answers reducing trust. Poorly designed escalation workflow. Low staff adoption. AI giving confidently wrong answers.",
+    "successDefinition": "50% reduction in repetitive Slack queries to policy team. Answer accuracy above 90% on tested queries. Source citation in 100% of answers. New joiner time-to-productivity under 4 weeks.",
+    "buyerTeam": "Chief Operating Officer, Head of Claims, IT Director",
+    "riskLevel": "medium"
+  },
+  "stakeholders": [
+    {
+      "id": "s1",
+      "name": "Sandra Obi",
+      "role": "Chief Operating Officer",
+      "team": "Operations",
+      "influence": "high",
+      "involvement": "sponsor",
+      "concerns": ["Staff adoption", "Operational efficiency ROI", "FCA compliance"],
+      "requiredActions": ["Approve budget", "Communicate to claims leadership", "Confirm FCA compliance position"]
+    },
+    {
+      "id": "s2",
+      "name": "Tom Bradley",
+      "role": "Head of Claims",
+      "team": "Claims Operations",
+      "influence": "high",
+      "involvement": "business_owner",
+      "concerns": ["Claims handler accuracy", "Escalation workflow", "Training team workload reduction"],
+      "requiredActions": ["Define priority policy areas for knowledge base", "Select pilot claims handlers", "Own adoption communications"]
+    },
+    {
+      "id": "s3",
+      "name": "Fatima Al-Rashid",
+      "role": "IT Director",
+      "team": "Technology",
+      "influence": "medium",
+      "involvement": "technical_owner",
+      "concerns": ["Data residency", "Integration with SharePoint and Slack", "Support model for ongoing updates"],
+      "requiredActions": ["Confirm SharePoint API access", "Confirm Slack integration approval", "Review data processing approach"]
+    },
+    {
+      "id": "s4",
+      "name": "Claire Hutchings",
+      "role": "Lead Policy Specialist",
+      "team": "Policy and Training",
+      "influence": "medium",
+      "involvement": "end_user",
+      "concerns": ["Knowledge base accuracy", "Who owns content updates", "Agent replacing human expertise"],
+      "requiredActions": ["Review and validate knowledge base content", "Define content ownership process", "Participate in QA testing"]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "w1",
+      "name": "Staff Question Submission",
+      "description": "Claims handler asks a question via Slack #claims-questions channel or direct message to policy specialist.",
+      "ownerTeam": "Claims Operations",
+      "currentSystem": "Slack",
+      "inputData": ["Question text", "Policy area (implied)", "Urgency"],
+      "outputArtifact": ["Answer from policy specialist", "Thread record in Slack"],
+      "painPoints": ["Questions repeated daily", "Answers inconsistent", "Policy specialists overwhelmed", "Answers not searchable after the fact"],
+      "manualEffort": "medium",
+      "frequency": "daily",
+      "failureModes": ["Unanswered questions", "Inconsistent answers", "Policy specialist bottleneck"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w2",
+      "name": "Policy Document Lookup",
+      "description": "Staff searches SharePoint for the relevant policy document and navigates to the relevant section.",
+      "ownerTeam": "Claims Operations",
+      "currentSystem": "SharePoint",
+      "inputData": ["Search query", "Policy area"],
+      "outputArtifact": ["Policy document section", "Interpretation"],
+      "painPoints": ["SharePoint search is poor", "Documents are long and hard to navigate", "Multiple versions create confusion", "Staff don't know which document to look in"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Wrong document found", "Outdated version used", "Staff give up and ask a colleague"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w3",
+      "name": "Escalation to Expert",
+      "description": "When staff cannot find an answer or are unsure, they escalate to a policy specialist or senior claims manager.",
+      "ownerTeam": "Policy and Training",
+      "currentSystem": "Slack / Email",
+      "inputData": ["Question", "Context", "Previous attempts"],
+      "outputArtifact": ["Expert answer", "Guidance note (sometimes)"],
+      "painPoints": ["No structured escalation path", "Context lost when moving from Slack to email", "Experts not always available", "Same questions escalated repeatedly"],
+      "manualEffort": "medium",
+      "frequency": "daily",
+      "failureModes": ["Delayed response", "Expert overload", "Context not captured for future reference"],
+      "automationPotential": "medium",
+      "futureState": "human_led"
+    }
+  ],
+  "systems": [
+    {
+      "id": "sys1",
+      "name": "SharePoint (Policy Documents)",
+      "type": "document_management",
+      "owner": "IT / Policy Team",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "Microsoft Graph API",
+      "dataSensitivity": "medium",
+      "integrationComplexity": "medium",
+      "notes": "Microsoft 365 SharePoint. Graph API available. Document library structure is inconsistent. Version control is manual. Content ownership is unclear."
+    },
+    {
+      "id": "sys2",
+      "name": "Slack",
+      "type": "chat",
+      "owner": "IT",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "Slack app token",
+      "dataSensitivity": "low",
+      "integrationComplexity": "low",
+      "notes": "Standard Slack API. Bot integration straightforward. Need to define which channels the agent operates in."
+    },
+    {
+      "id": "sys3",
+      "name": "Claims Management System",
+      "type": "case_management",
+      "owner": "IT",
+      "accessMethod": "unknown",
+      "apiAvailable": "unknown",
+      "authenticationMethod": "",
+      "dataSensitivity": "regulated",
+      "integrationComplexity": "high",
+      "notes": "Legacy Guidewire implementation. IT to confirm API availability. Likely out of scope for MVP — agent focuses on policy Q&A, not claims data."
+    },
+    {
+      "id": "sys4",
+      "name": "Internal Ticketing System",
+      "type": "ticketing",
+      "owner": "IT",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "API key",
+      "dataSensitivity": "low",
+      "integrationComplexity": "low",
+      "notes": "ServiceNow. Used for IT helpdesk. Could be used for escalation routing from AI agent to human expert."
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "ds1",
+      "name": "Policy Document Library",
+      "sourceSystem": "SharePoint",
+      "dataType": "documents",
+      "format": "mixed",
+      "quality": "mixed",
+      "volumeEstimate": "~400 documents, 3 years of versions",
+      "updateFrequency": "Monthly (inconsistent)",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Which documents are current vs archived?", "Who owns each document area?", "Are there documents outside SharePoint?", "How are policy updates communicated?"]
+    },
+    {
+      "id": "ds2",
+      "name": "Slack Q&A History",
+      "sourceSystem": "Slack",
+      "dataType": "messages",
+      "format": "api",
+      "quality": "mixed",
+      "volumeEstimate": "~18 months of #claims-questions channel history",
+      "updateFrequency": "Real-time",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Are answers validated by experts?", "Are there private channels with relevant Q&A?"]
+    },
+    {
+      "id": "ds3",
+      "name": "Training Materials",
+      "sourceSystem": "SharePoint",
+      "dataType": "documents",
+      "format": "mixed",
+      "quality": "good",
+      "volumeEstimate": "~60 training documents and slide decks",
+      "updateFrequency": "Quarterly",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["Are training materials aligned with current policy?"]
+    }
+  ],
+  "requirements": [],
+  "risks": [
+    {
+      "id": "r1",
+      "title": "Outdated policy documents in knowledge base",
+      "description": "SharePoint contains multiple versions of policy documents. AI may retrieve and cite outdated guidance, causing operational errors.",
+      "category": "data_readiness",
+      "severity": "high",
+      "likelihood": "high",
+      "owner": "Claire Hutchings",
+      "mitigation": "Document audit before ingestion. Mark current vs archived. Assign content owners per policy area. Implement update notification process.",
+      "escalationTrigger": "Any answer citing a superseded policy document",
+      "status": "open"
+    },
+    {
+      "id": "r2",
+      "title": "AI giving confidently wrong answers",
+      "description": "Agent may answer out-of-scope or ambiguous questions with false confidence, undermining trust.",
+      "category": "model_quality",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner": "Tom Bradley",
+      "mitigation": "Calibrate confidence thresholds. Display uncertainty when confidence is low. Route low-confidence answers to escalation. Regular accuracy testing against known questions.",
+      "escalationTrigger": "Answer accuracy below 85% in any weekly test batch",
+      "status": "open"
+    },
+    {
+      "id": "r3",
+      "title": "Permission issues — staff accessing policy areas they cannot use",
+      "description": "Not all claims handlers should access all policy areas. AI agent may surface restricted content.",
+      "category": "security",
+      "severity": "medium",
+      "likelihood": "medium",
+      "owner": "Fatima Al-Rashid",
+      "mitigation": "Implement role-based knowledge base segmentation. Map Slack/SSO roles to policy access levels. IT to confirm SharePoint permission model.",
+      "escalationTrigger": "Any claim handler receiving content outside their access level",
+      "status": "open"
+    },
+    {
+      "id": "r4",
+      "title": "Low staff adoption",
+      "description": "Claims handlers may default to asking colleagues rather than using the AI agent, reducing ROI.",
+      "category": "operational_adoption",
+      "severity": "medium",
+      "likelihood": "high",
+      "owner": "Sandra Obi",
+      "mitigation": "Seamless Slack integration — zero friction to use. Manager communications on adoption. Track usage rate weekly. Gather and respond to user feedback during pilot.",
+      "escalationTrigger": "Weekly active users below 30% of pilot group after 2 weeks",
+      "status": "open"
+    },
+    {
+      "id": "r5",
+      "title": "FCA advice boundary — agent perceived as regulatory guidance",
+      "description": "If staff perceive agent answers as FCA-regulated advice rather than internal process guidance, it creates regulatory risk.",
+      "category": "legal_procurement",
+      "severity": "medium",
+      "likelihood": "low",
+      "owner": "Sandra Obi",
+      "mitigation": "All agent answers include disclaimer: 'This is internal process guidance only. For regulatory queries, contact the Policy team.' FCA compliance review before launch.",
+      "escalationTrigger": "Any complaint or regulatory query about AI guidance",
+      "status": "open"
+    }
+  ],
+  "pilotPlan": {
+    "objective": "Validate AI support agent reduces repetitive policy queries and improves answer consistency for claims handlers.",
+    "scope": "Motor claims policy area only. Slack integration only (no email). 15 pilot users from claims handling team.",
+    "pilotUsers": ["15 claims handlers from motor claims team (TBC with Tom Bradley)"],
+    "includedWorkflows": ["Staff Question Submission", "Policy Document Lookup"],
+    "excludedWorkflows": ["Escalation to Expert"],
+    "durationWeeks": 6,
+    "successMetrics": [
+      {
+        "id": "m1",
+        "name": "Repetitive query volume reduction",
+        "baseline": "~80 queries/week in #claims-questions for motor policy",
+        "target": "40 queries/week",
+        "measurementMethod": "Slack message count in #claims-questions from pilot users",
+        "owner": "Tom Bradley"
+      },
+      {
+        "id": "m2",
+        "name": "Answer accuracy",
+        "baseline": "N/A — establishing baseline",
+        "target": "90% correct on tested query set",
+        "measurementMethod": "Weekly batch of 20 test questions reviewed by Claire Hutchings",
+        "owner": "Claire Hutchings"
+      },
+      {
+        "id": "m3",
+        "name": "Source citation rate",
+        "baseline": "N/A",
+        "target": "100% of answers include source document and section",
+        "measurementMethod": "Automated check on all agent responses",
+        "owner": "Fatima Al-Rashid"
+      },
+      {
+        "id": "m4",
+        "name": "Staff satisfaction score",
+        "baseline": "N/A",
+        "target": "3.5/5 average",
+        "measurementMethod": "Thumbs up/down rating on each agent response in Slack",
+        "owner": "Tom Bradley"
+      }
+    ],
+    "launchCriteria": [
+      "Policy document audit complete for motor claims area",
+      "SharePoint ingestion tested and verified",
+      "Slack app deployed and tested in staging",
+      "Role-based access controls configured and tested",
+      "FCA compliance review completed",
+      "Pilot user communications sent"
+    ],
+    "rollbackCriteria": [
+      "Answer accuracy below 80% in any weekly test batch",
+      "Any staff receiving content outside their access level",
+      "FCA enquiry about AI guidance",
+      "Agent downtime above 4 hours in any working day"
+    ],
+    "baselineMeasurement": "6 weeks of Slack message volume in #claims-questions. Baseline accuracy test on 50 known motor policy questions.",
+    "targetOutcome": "50% reduction in repetitive queries. 90% answer accuracy. 100% source citation. Staff satisfaction 3.5/5."
+  },
+  "outputs": null
+}

@@ -1,0 +1,303 @@
+{
+  "id": "legaltech-contract",
+  "name": "Harrington Shaw LLP — Contract Review",
+  "scenarioType": "legaltech_contract",
+  "status": "discovery",
+  "createdAt": "2026-05-01T09:00:00Z",
+  "updatedAt": "2026-05-01T09:00:00Z",
+  "customer": {
+    "companyName": "Harrington Shaw LLP",
+    "industry": "legaltech",
+    "companySize": "mid_market",
+    "primaryUseCase": "AI-assisted first-pass contract review",
+    "businessProblem": "Junior associates spend 60-70% of their time extracting key clauses and summarising routine commercial risks in NDAs, MSAs, and supplier contracts. This is high-cost, low-value work that delays deal velocity and creates inconsistency in risk identification.",
+    "desiredOutcome": "Reduce first-pass contract review time by 50%. Improve consistency of risk summaries across the team. Preserve partner and associate approval on all client-facing outputs.",
+    "urgency": "medium",
+    "regulatoryContext": ["SRA", "GDPR", "legal professional privilege"],
+    "technicalMaturity": "low"
+  },
+  "discovery": {
+    "currentProcess": "Associates receive contracts via email or document management system. They manually read each contract, extract defined terms, flag non-standard clauses, and write a summary memo. Senior associate or partner reviews and approves before sharing with client.",
+    "usersAffected": "12 associates, 4 senior associates, 6 partners",
+    "implementationDeadline": "2026-08-31",
+    "constraints": "Legal professional privilege must be preserved. No client-identifiable data in AI training. All outputs require lawyer approval before client use. Firm has no IT team — external IT managed service. SRA compliance must be confirmed before deployment.",
+    "knownRisks": "AI hallucination in legal context. Inconsistent clause language across counterparty paper. Privilege and confidentiality exposure. Junior staff over-relying on AI outputs. Partner resistance to AI involvement.",
+    "successDefinition": "50% reduction in first-pass review time on standard contracts. Risk summary consistency score above 80% across associates. Zero client communications sent without lawyer review.",
+    "buyerTeam": "Managing Partner, Head of Commercial, IT Manager (external)",
+    "riskLevel": "high"
+  },
+  "stakeholders": [
+    {
+      "id": "s1",
+      "name": "Helena Shaw",
+      "role": "Managing Partner",
+      "team": "Partnership",
+      "influence": "high",
+      "involvement": "sponsor",
+      "concerns": ["Client confidentiality", "Reputational risk from AI errors", "SRA compliance", "Partner billing rates"],
+      "requiredActions": ["Approve pilot scope", "Communicate to partnership", "SRA guidance review"]
+    },
+    {
+      "id": "s2",
+      "name": "David Okoro",
+      "role": "Head of Commercial",
+      "team": "Commercial Group",
+      "influence": "high",
+      "involvement": "business_owner",
+      "concerns": ["Associate adoption", "Consistency of outputs", "Deal velocity improvement"],
+      "requiredActions": ["Define contract types in scope", "Select pilot associates", "Sign off on review workflow"]
+    },
+    {
+      "id": "s3",
+      "name": "Rachel Kim",
+      "role": "Senior Associate",
+      "team": "Commercial Group",
+      "influence": "medium",
+      "involvement": "technical_owner",
+      "concerns": ["AI accuracy on clause extraction", "Workflow integration with iManage", "Training burden"],
+      "requiredActions": ["Lead associate training", "Provide clause extraction test cases", "Review integration design"]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "w1",
+      "name": "Contract Intake",
+      "description": "Contract arrives via email or client portal. Assigned to associate in iManage.",
+      "ownerTeam": "Secretarial / Associate",
+      "currentSystem": "iManage Work",
+      "inputData": ["Contract document", "Client matter reference", "Counterparty name"],
+      "outputArtifact": ["Matter record", "Associate assignment"],
+      "painPoints": ["Assignment is manual", "No SLA tracking", "Contracts arrive in mixed formats (Word, PDF, scanned)"],
+      "manualEffort": "low",
+      "frequency": "daily",
+      "failureModes": ["Missed assignment", "Scanned PDFs cannot be searched"],
+      "automationPotential": "medium",
+      "futureState": "automated"
+    },
+    {
+      "id": "w2",
+      "name": "First-Pass Clause Extraction",
+      "description": "Associate reads full contract and extracts key defined terms, unusual clauses, and risk indicators.",
+      "ownerTeam": "Associates",
+      "currentSystem": "Word / iManage",
+      "inputData": ["Contract document", "Standard clause checklist"],
+      "outputArtifact": ["Clause extraction notes", "Flagged non-standard clauses"],
+      "painPoints": ["Takes 2-4 hours per contract", "Inconsistent between associates", "No standard extraction template", "Junior associates miss non-obvious risk clauses"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Missed clauses", "Inconsistent risk identification", "Delayed delivery to client"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w3",
+      "name": "Risk Summary Memo",
+      "description": "Associate writes a summary memo identifying key risks, deviations from standard positions, and recommended negotiating points.",
+      "ownerTeam": "Associates",
+      "currentSystem": "Word",
+      "inputData": ["Clause extraction notes", "Firm standard positions", "Client risk appetite"],
+      "outputArtifact": ["Risk summary memo"],
+      "painPoints": ["Memo quality varies significantly", "No standard template", "Associates unsure of firm standard positions", "Takes 1-2 hours"],
+      "manualEffort": "high",
+      "frequency": "daily",
+      "failureModes": ["Missing key risks", "Inconsistent tone and format", "Wrong client risk appetite applied"],
+      "automationPotential": "high",
+      "futureState": "ai_assisted"
+    },
+    {
+      "id": "w4",
+      "name": "Senior Review and Approval",
+      "description": "Senior associate or partner reviews memo and approves or revises before client communication.",
+      "ownerTeam": "Senior Associates / Partners",
+      "currentSystem": "Email / Word",
+      "inputData": ["Risk summary memo", "Clause extraction notes"],
+      "outputArtifact": ["Approved memo", "Client email"],
+      "painPoints": ["Review bottleneck at senior level", "Rework is common due to inconsistent associate output", "No structured feedback loop"],
+      "manualEffort": "medium",
+      "frequency": "daily",
+      "failureModes": ["Delayed client response", "Partners doing associate-level work", "Approval not documented"],
+      "automationPotential": "low",
+      "futureState": "requires_approval"
+    }
+  ],
+  "systems": [
+    {
+      "id": "sys1",
+      "name": "iManage Work",
+      "type": "document_management",
+      "owner": "IT (managed service)",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "OAuth2",
+      "dataSensitivity": "high",
+      "integrationComplexity": "medium",
+      "notes": "iManage Work 10 API available. Managed service provider needs to approve integration. Client matter data is privileged."
+    },
+    {
+      "id": "sys2",
+      "name": "Email (Microsoft 365)",
+      "type": "email",
+      "owner": "IT (managed service)",
+      "accessMethod": "api",
+      "apiAvailable": true,
+      "authenticationMethod": "Microsoft Graph API",
+      "dataSensitivity": "high",
+      "integrationComplexity": "low",
+      "notes": "Contracts often arrive via email attachment. Graph API available but scope of access needs to be defined carefully."
+    },
+    {
+      "id": "sys3",
+      "name": "Firm Standard Positions Library",
+      "type": "document_management",
+      "owner": "Head of Commercial",
+      "accessMethod": "manual_upload",
+      "apiAvailable": false,
+      "authenticationMethod": "",
+      "dataSensitivity": "medium",
+      "integrationComplexity": "low",
+      "notes": "Currently a Word document maintained by one senior associate. Not versioned. Needs to be converted to a structured format for AI ingestion."
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "ds1",
+      "name": "Contract Documents",
+      "sourceSystem": "iManage Work",
+      "dataType": "contracts",
+      "format": "mixed",
+      "quality": "mixed",
+      "volumeEstimate": "40-60 contracts/month in scope",
+      "updateFrequency": "Per-matter",
+      "pii": true,
+      "accessStatus": "pending",
+      "openQuestions": ["Are scanned PDFs OCR'd?", "What proportion are counterparty paper vs firm paper?", "Are historical contracts available for testing?"]
+    },
+    {
+      "id": "ds2",
+      "name": "Firm Standard Positions",
+      "sourceSystem": "Firm Standard Positions Library",
+      "dataType": "documents",
+      "format": "docx",
+      "quality": "poor",
+      "volumeEstimate": "1 document, ~80 pages",
+      "updateFrequency": "Ad hoc",
+      "pii": false,
+      "accessStatus": "available",
+      "openQuestions": ["When was it last updated?", "Is it complete for all contract types in scope?", "Who owns it going forward?"]
+    }
+  ],
+  "requirements": [],
+  "risks": [
+    {
+      "id": "r1",
+      "title": "AI hallucination in legal clause extraction",
+      "description": "Model may misidentify, misquote, or fabricate clause content, creating legal risk if relied upon without review.",
+      "category": "model_quality",
+      "severity": "critical",
+      "likelihood": "medium",
+      "owner": "Rachel Kim",
+      "mitigation": "All AI outputs mandatory reviewed by qualified lawyer before use. UI must display source clause reference for every extraction. No AI output goes to client without approval.",
+      "escalationTrigger": "Any fabricated or materially incorrect clause extraction identified in testing or pilot",
+      "status": "open"
+    },
+    {
+      "id": "r2",
+      "title": "Legal professional privilege — data exposure",
+      "description": "Client matter data processed by AI must not create privilege waiver or data leak risk.",
+      "category": "legal_procurement",
+      "severity": "high",
+      "likelihood": "medium",
+      "owner": "Helena Shaw",
+      "mitigation": "Data processing agreement with AI vendor. Confirm no training on client data. SRA ethics guidance review. Counsel opinion on privilege position.",
+      "escalationTrigger": "Any client data leaving the firm's data boundary without authorisation",
+      "status": "open"
+    },
+    {
+      "id": "r3",
+      "title": "Inconsistent clause language across counterparty paper",
+      "description": "Counterparty contracts use non-standard language that AI may not recognise as equivalent to standard clauses.",
+      "category": "model_quality",
+      "severity": "medium",
+      "likelihood": "high",
+      "owner": "David Okoro",
+      "mitigation": "Curate training examples across common counterparty templates. Include uncertainty indicators in AI output. Flag low-confidence extractions for manual review.",
+      "escalationTrigger": "AI confidence below threshold on more than 20% of clauses in a contract",
+      "status": "open"
+    },
+    {
+      "id": "r4",
+      "title": "Firm standard positions document is outdated and unstructured",
+      "description": "The Word document used as the AI's knowledge base for standard positions is poorly maintained and may produce incorrect guidance.",
+      "category": "data_readiness",
+      "severity": "high",
+      "likelihood": "high",
+      "owner": "David Okoro",
+      "mitigation": "Document review and clean-up before ingestion. Assign ownership to Head of Commercial. Version control introduced.",
+      "escalationTrigger": "AI guidance contradicts current firm position on any standard clause",
+      "status": "open"
+    },
+    {
+      "id": "r5",
+      "title": "Partner resistance to AI involvement",
+      "description": "Partners may be sceptical or resistant to AI in client-facing work, slowing adoption.",
+      "category": "stakeholder_alignment",
+      "severity": "medium",
+      "likelihood": "medium",
+      "owner": "Helena Shaw",
+      "mitigation": "Managing Partner sponsorship and communication. Pilot with supportive associates first. Present results at partnership meeting.",
+      "escalationTrigger": "Partner formally objects to AI use on any client matter",
+      "status": "open"
+    }
+  ],
+  "pilotPlan": {
+    "objective": "Validate AI-assisted clause extraction and risk summary reduces first-pass review time by 50% without reducing quality.",
+    "scope": "NDAs and MSAs only. Standard commercial contracts in English. Excludes litigation, employment, and property matters.",
+    "pilotUsers": ["Rachel Kim", "2 junior associates (TBC)"],
+    "includedWorkflows": ["First-Pass Clause Extraction", "Risk Summary Memo"],
+    "excludedWorkflows": ["Contract Intake", "Senior Review and Approval"],
+    "durationWeeks": 4,
+    "successMetrics": [
+      {
+        "id": "m1",
+        "name": "First-pass review time",
+        "baseline": "3.2 hours average per contract",
+        "target": "1.6 hours average per contract",
+        "measurementMethod": "Time logged per matter in iManage",
+        "owner": "David Okoro"
+      },
+      {
+        "id": "m2",
+        "name": "Risk summary consistency",
+        "baseline": "65% agreement across associates on same contract",
+        "target": "80% agreement",
+        "measurementMethod": "Blind test — 5 contracts reviewed independently by 3 associates with and without AI",
+        "owner": "Rachel Kim"
+      },
+      {
+        "id": "m3",
+        "name": "Lawyer approval rate",
+        "baseline": "100%",
+        "target": "100%",
+        "measurementMethod": "Audit of all client communications sent during pilot",
+        "owner": "Helena Shaw"
+      }
+    ],
+    "launchCriteria": [
+      "SRA ethics guidance reviewed and confirmed",
+      "Data processing agreement signed with AI vendor",
+      "Privilege position confirmed by counsel opinion",
+      "Firm standard positions document reviewed and updated",
+      "Associate training completed",
+      "iManage integration tested"
+    ],
+    "rollbackCriteria": [
+      "Any fabricated clause extraction identified",
+      "Client data accessed outside agreed boundary",
+      "Partner formally objects to AI use on client matter",
+      "SRA queries AI use"
+    ],
+    "baselineMeasurement": "4 weeks of time-recording data from iManage reviewed for first-pass contract review tasks. Associate calibration exercise completed on 5 standard contracts.",
+    "targetOutcome": "50% reduction in first-pass review time on NDAs and MSAs. 80% risk summary consistency. 100% lawyer approval maintained."
+  },
+  "outputs": null
+}
