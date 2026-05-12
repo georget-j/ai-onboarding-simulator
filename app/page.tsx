@@ -1,65 +1,124 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+const OUTPUTS = [
+  "Customer Discovery Summary",
+  "Current & Future-State Workflow Map",
+  "Requirements Matrix",
+  "Missing Information Log",
+  "Integration & API Plan",
+  "Data Readiness Assessment",
+  "Implementation Plan",
+  "Deployment Risk Register",
+  "Pilot Success Plan",
+  "Engineering Handoff",
+  "Stakeholder Communication Plan",
+  "Product Feedback Memo",
+  "Executive Summary",
+  "Next Actions Checklist",
+];
+
+const ROLES = [
+  "Forward-Deployed Engineer",
+  "Solutions Engineer",
+  "Deployment Strategist",
+  "Technical Customer Success",
+  "AI Deployment Lead",
+  "Technical Operator",
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="mx-auto max-w-7xl px-6 py-16 space-y-16">
+      {/* Hero */}
+      <section className="space-y-6 max-w-3xl">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">Portfolio Project</Badge>
+          <Badge variant="outline" className="text-xs">AI · B2B · Forward-Deployed</Badge>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <h1 className="text-4xl font-bold tracking-tight">
+          Forward-Deployed Customer Onboarding Simulator
+        </h1>
+        <p className="text-lg text-muted-foreground leading-relaxed">
+          Simulate how a forward-deployed AI team turns messy customer discovery into a
+          deployment-ready onboarding plan — requirements, risks, engineering handoffs, pilot
+          success metrics, and more.
+        </p>
+        <div className="flex items-center gap-3 pt-2">
+          <Button asChild size="lg">
+            <Link href="/scenarios">Browse Scenarios</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/workspace/custom">Start Custom Project</Link>
+          </Button>
         </div>
-      </main>
+      </section>
+
+      {/* What it generates */}
+      <section className="grid md:grid-cols-2 gap-12">
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Generated Outputs
+          </h2>
+          <ul className="space-y-2">
+            {OUTPUTS.map((output, i) => (
+              <li key={output} className="flex items-start gap-3 text-sm">
+                <span className="mt-0.5 text-xs text-muted-foreground font-mono w-5 shrink-0">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span>{output}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Demonstrates Skills For
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {ROLES.map((role) => (
+                <Badge key={role} variant="secondary" className="text-xs">
+                  {role}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-muted/30 p-5 space-y-3">
+            <h3 className="text-sm font-semibold">How It Works</h3>
+            <ol className="space-y-2 text-sm text-muted-foreground">
+              {[
+                "Select a customer scenario or create your own",
+                "Capture discovery inputs, workflow steps, and systems",
+                "Auto-generate requirements and deployment risks",
+                "Build a pilot success plan with KPIs and criteria",
+                "Generate AI-structured implementation artifacts",
+                "Export a complete Markdown onboarding pack",
+              ].map((step, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="rounded-lg border p-5 space-y-2">
+            <h3 className="text-sm font-semibold">Why This Project Exists</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This project demonstrates how a forward-deployed AI or solutions engineering team
+              can turn messy customer discovery into structured implementation artifacts —
+              requirements, risks, pilot plans, engineering handoffs, and customer
+              communications.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
