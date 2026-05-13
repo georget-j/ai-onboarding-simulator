@@ -1,12 +1,18 @@
 "use client";
 
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { generateRisks } from "@/lib/risk-engine";
+import { cn, generateId } from "@/lib/utils";
 import { detectMissingInfo } from "@/lib/missing-info-engine";
+import type {
+  MissingInfoItem,
+  MissingInfoOwner,
+  NotesExtractionResult,
+  SystemType,
+} from "@/lib/types";
 
 const STEPS = [
   { href: "discovery", label: "Customer Discovery", key: "discovery" },
@@ -25,17 +31,42 @@ const SEVERITY_COLOR: Record<string, string> = {
   low: "bg-green-100 text-green-800 border-green-200",
 };
 
+const OWNER_CONFIG: Record<MissingInfoOwner, { label: string; dot: string }> = {
+  customer:    { label: "Customer",    dot: "bg-blue-500" },
+  engineering: { label: "Engineering", dot: "bg-purple-500" },
+  security:    { label: "Security",    dot: "bg-red-500" },
+  commercial:  { label: "Commercial",  dot: "bg-amber-500" },
+  product:     { label: "Product",     dot: "bg-green-500" },
+  unknown:     { label: "TBD",         dot: "bg-muted-foreground" },
+};
+
+const TAB_LABELS: Record<string, string> = {
+  discovery: "Discovery",
+  workflow:  "Workflow",
+  systems:   "Systems & Data",
+  pilot:     "Pilot Plan",
+};
+
+const VALID_SYSTEM_TYPES: SystemType[] = [
+  "crm", "case_management", "document_management", "data_warehouse",
+  "ticketing", "email", "chat", "core_system", "custom", "other",
+];
+
+function toSystemType(s: string): SystemType {
+  return (VALID_SYSTEM_TYPES as string[]).includes(s) ? (s as SystemType) : "other";
+}
+
 function isStepComplete(project: ReturnType<typeof useWorkspace>["project"], key: string): boolean {
   if (!project) return false;
   switch (key) {
-    case "discovery": return !!project.discovery.currentProcess;
-    case "workflow": return project.workflows.length > 0;
-    case "systems": return project.systems.length > 0;
+    case "discovery":    return !!project.discovery.currentProcess;
+    case "workflow":     return project.workflows.length > 0;
+    case "systems":      return project.systems.length > 0;
     case "requirements": return project.requirements.length > 0;
-    case "risks": return project.risks.length > 0;
-    case "pilot": return !!project.pilotPlan?.objective;
-    case "outputs": return !!project.outputs?.executiveSummary;
-    default: return false;
+    case "risks":        return project.risks.length > 0;
+    case "pilot":        return !!project.pilotPlan?.objective;
+    case "outputs":      return !!project.outputs?.executiveSummary;
+    default:             return false;
   }
 }
 
@@ -43,44 +74,324 @@ function computeReadinessScore(project: ReturnType<typeof useWorkspace>["project
   if (!project) return 0;
   let score = 0;
 
-  // Step completion: 5 points each, max 35
   const STEP_KEYS = ["discovery", "workflow", "systems", "requirements", "risks", "pilot", "outputs"];
   for (const key of STEP_KEYS) {
     if (isStepComplete(project, key)) score += 5;
   }
 
-  // Risk posture: deduct for open critical/high risks
   const critOpen = project.risks.filter((r) => r.severity === "critical" && r.status === "open").length;
-  const highOpen = project.risks.filter((r) => r.severity === "high" && r.status === "open").length;
+  const highOpen = project.risks.filter((r) => r.severity === "high"     && r.status === "open").length;
   score -= critOpen * 5;
   score -= highOpen * 2;
 
-  // Pilot plan completeness: up to 15
   if (project.pilotPlan) {
-    if (project.pilotPlan.objective) score += 3;
-    if (project.pilotPlan.successMetrics.length >= 2) score += 6;
-    if (project.pilotPlan.launchCriteria.length >= 2) score += 3;
-    if (project.pilotPlan.rollbackCriteria.length >= 1) score += 3;
+    if (project.pilotPlan.objective)                        score += 3;
+    if (project.pilotPlan.successMetrics.length >= 2)       score += 6;
+    if (project.pilotPlan.launchCriteria.length >= 2)       score += 3;
+    if (project.pilotPlan.rollbackCriteria.length >= 1)     score += 3;
   }
 
-  // Stakeholders mapped: up to 5
-  if (project.stakeholders.length >= 3) score += 5;
+  if      (project.stakeholders.length >= 3) score += 5;
   else if (project.stakeholders.length >= 1) score += 2;
 
-  // Missing info: deduct 1 per open item, max -10
   const missingInfo = detectMissingInfo(project);
   score -= Math.min(missingInfo.length, 10);
 
   return Math.max(0, Math.min(100, score));
 }
 
+// ── Open Actions Panel ────────────────────────────────────────────────────
+
+function OpenActionsPanel({ items, projectId }: { items: MissingInfoItem[]; projectId: string }) {
+  const [open, setOpen] = useState(false);
+
+  const grouped = (Object.keys(OWNER_CONFIG) as MissingInfoOwner[]).reduce<Record<string, MissingInfoItem[]>>(
+    (acc, owner) => {
+      const ownerItems = items.filter((i) => i.suggestedOwner === owner);
+      if (ownerItems.length > 0) acc[owner] = ownerItems;
+      return acc;
+    },
+    {}
+  );
+
+  if (items.length === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50/50 px-4 py-3 text-sm text-green-800">
+        <span>✓</span>
+        <span className="font-medium">All actions resolved</span>
+        <span className="text-green-700/70">— ready to generate outputs</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-3 w-full rounded-lg border border-amber-200 bg-amber-50/40 px-4 py-3 text-sm text-left hover:bg-amber-50/70 transition-colors"
+      >
+        <span className="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white text-xs font-bold shrink-0">
+          {items.length}
+        </span>
+        <span className="font-medium text-amber-900">
+          {items.length} open action{items.length !== 1 ? "s" : ""} — review before pilot launch
+        </span>
+        <span className="ml-auto text-amber-700/60 text-xs">{open ? "Hide ↑" : "Review ↓"}</span>
+      </button>
+
+      {open && (
+        <div className="rounded-lg border bg-background divide-y">
+          {Object.entries(grouped).map(([owner, ownerItems]) => {
+            const config = OWNER_CONFIG[owner as MissingInfoOwner];
+            return (
+              <div key={owner} className="px-4 py-3 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", config.dot)} />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {config.label}
+                  </span>
+                </div>
+                {ownerItems.map((action) => (
+                  <div key={action.id} className="flex items-start gap-3 pl-4">
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-sm font-medium leading-snug">{action.item}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{action.whyItMatters}</p>
+                    </div>
+                    <Link
+                      href={`/workspace/${projectId}/${action.relatedTab}`}
+                      className="text-xs text-primary hover:text-primary/80 shrink-0 whitespace-nowrap pt-0.5 transition-colors"
+                    >
+                      → {TAB_LABELS[action.relatedTab]}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Notes Card ────────────────────────────────────────────────────────────
+
+const DISCOVERY_FIELD_LABELS: Record<string, string> = {
+  businessProblem:        "Business Problem",
+  primaryUseCase:         "Primary Use Case",
+  desiredOutcome:         "Desired Outcome",
+  currentProcess:         "Current Process",
+  successDefinition:      "Success Definition",
+  implementationDeadline: "Implementation Deadline",
+  buyerTeam:              "Buyer Team",
+  constraints:            "Constraints",
+};
+
+function NotesCard({
+  projectId,
+  initialNotes,
+  onApply,
+}: {
+  projectId: string;
+  initialNotes: string;
+  onApply: (result: NotesExtractionResult) => void;
+}) {
+  const [open, setOpen] = useState(!!initialNotes);
+  const [notes, setNotes] = useState(initialNotes);
+  const [extracting, setExtracting] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<NotesExtractionResult | null>(null);
+  const [applied, setApplied] = useState(false);
+  const { updateProject } = useWorkspace();
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistNotes = useCallback((value: string) => {
+    updateProject({ meetingNotes: value });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }, [updateProject]);
+
+  const handleChange = (value: string) => {
+    setNotes(value);
+    setSaved(false);
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => persistNotes(value), 1000);
+  };
+
+  const handleExtract = async () => {
+    if (notes.trim().length < 20) return;
+    setExtracting(true);
+    setError(null);
+    setSuggestions(null);
+    setApplied(false);
+
+    try {
+      const res = await fetch("/api/extract/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes }),
+      });
+      const data = await res.json();
+
+      if (data.error === "no_api_key") {
+        setError("Extraction requires an OpenAI API key. Notes are saved and will be included in artifact generation.");
+        return;
+      }
+      if (data.error) {
+        setError("Extraction failed — please try again or fill fields in manually.");
+        return;
+      }
+      setSuggestions(data.suggestions as NotesExtractionResult);
+    } catch {
+      setError("Network error — please try again.");
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const handleApplyAll = () => {
+    if (!suggestions) return;
+    onApply(suggestions);
+    setApplied(true);
+    setSuggestions(null);
+  };
+
+  const discoveryFields = suggestions?.discovery
+    ? Object.entries(suggestions.discovery).filter(([, v]) => v && String(v).trim())
+    : [];
+
+  return (
+    <div className="rounded-lg border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors rounded-lg"
+      >
+        <span className="flex items-center gap-2">
+          Notes & Context
+          {initialNotes && (
+            <span className="text-xs text-muted-foreground font-normal">(saved)</span>
+          )}
+        </span>
+        <span className="text-xs text-muted-foreground">{open ? "↑" : "↓"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t px-4 pb-4 pt-3 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Paste meeting notes, emails, or shared documentation. Notes are auto-saved and included in AI artifact generation. Use "Extract fields" to pre-populate structured data.
+          </p>
+
+          <textarea
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+            rows={8}
+            value={notes}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder={"Paste meeting notes, discovery call transcript, customer brief, or shared documentation here…\n\nExample:\n- Met with Sarah Chen (CCO) and James Park (IT Director) on 14 May\n- Main problem: AML case triage takes 4 hours average, team of 12 analysts\n- Target: reduce to <45 minutes per case\n- Go-live target: Q3 2026\n- Key concern: regulatory explainability for SAR filing decisions"}
+          />
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExtract}
+              disabled={extracting || notes.trim().length < 20}
+              title={notes.trim().length < 20 ? "Add more notes to enable extraction" : ""}
+              className="text-sm px-4 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {extracting ? "Extracting…" : "Extract fields"}
+            </button>
+            {saved && <span className="text-xs text-muted-foreground">Saved ✓</span>}
+          </div>
+
+          {error && (
+            <div className="rounded-md bg-muted/50 border px-3 py-2 text-xs text-muted-foreground">
+              {error}
+            </div>
+          )}
+
+          {applied && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+              <span>✓ Fields applied — review in the</span>
+              <Link href={`/workspace/${projectId}/discovery`} className="font-medium underline underline-offset-2 hover:no-underline">Discovery</Link>
+              <span>and</span>
+              <Link href={`/workspace/${projectId}/systems`} className="font-medium underline underline-offset-2 hover:no-underline">Systems</Link>
+              <span>tabs.</span>
+            </div>
+          )}
+
+          {suggestions && !applied && (
+            <div className="rounded-lg border bg-muted/10 p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Extracted fields</p>
+                  {suggestions.summary && (
+                    <p className="text-xs text-muted-foreground mt-0.5 italic">{suggestions.summary}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyAll}
+                  className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium shrink-0"
+                >
+                  Apply all to project
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {discoveryFields.map(([key, value]) => (
+                  <div key={key} className="rounded-md bg-background border px-3 py-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {DISCOVERY_FIELD_LABELS[key] ?? key}
+                    </p>
+                    <p className="text-sm mt-0.5 leading-snug">{String(value)}</p>
+                  </div>
+                ))}
+
+                {(suggestions.suggestedStakeholders?.length ?? 0) > 0 && (
+                  <div className="rounded-md bg-background border px-3 py-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {suggestions.suggestedStakeholders!.length} stakeholder{suggestions.suggestedStakeholders!.length !== 1 ? "s" : ""} found
+                    </p>
+                    <div className="mt-1 space-y-0.5">
+                      {suggestions.suggestedStakeholders!.map((s, i) => (
+                        <p key={i} className="text-sm">
+                          {s.name} — {s.role}{s.team ? `, ${s.team}` : ""}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(suggestions.suggestedSystems?.length ?? 0) > 0 && (
+                  <div className="rounded-md bg-background border px-3 py-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {suggestions.suggestedSystems!.length} system{suggestions.suggestedSystems!.length !== 1 ? "s" : ""} mentioned
+                    </p>
+                    <div className="mt-1 space-y-0.5">
+                      {suggestions.suggestedSystems!.map((s, i) => (
+                        <p key={i} className="text-sm">{s.name} ({s.type})</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────
+
 export default function WorkspaceDashboard() {
-  const { project, loading } = useWorkspace();
+  const { project, loading, updateProject } = useWorkspace();
 
   if (loading) {
-    return (
-      <div className="p-8 text-muted-foreground text-sm">Loading workspace…</div>
-    );
+    return <div className="p-8 text-muted-foreground text-sm">Loading workspace…</div>;
   }
 
   if (!project) {
@@ -95,16 +406,76 @@ export default function WorkspaceDashboard() {
   }
 
   const completedCount = STEPS.filter((s) => isStepComplete(project, s.key)).length;
-  const allRisks = project.risks;
-  const topRisks = [...allRisks]
+  const topRisks = [...project.risks]
     .sort((a, b) => {
       const order = { critical: 0, high: 1, medium: 2, low: 3 };
       return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
     })
     .slice(0, 3);
-
   const nextStep = STEPS.find((s) => !isStepComplete(project, s.key));
   const readiness = computeReadinessScore(project);
+  const missingInfo = detectMissingInfo(project);
+
+  const handleApplyExtraction = (result: NotesExtractionResult) => {
+    const { businessProblem, primaryUseCase, desiredOutcome, ...discoveryPatch } = result.discovery ?? {};
+
+    const customerPatch = (businessProblem || primaryUseCase || desiredOutcome)
+      ? {
+          customer: {
+            ...project.customer,
+            ...(businessProblem  ? { businessProblem }  : {}),
+            ...(primaryUseCase   ? { primaryUseCase }   : {}),
+            ...(desiredOutcome   ? { desiredOutcome }   : {}),
+          },
+        }
+      : {};
+
+    const discoveryUpdate = Object.keys(discoveryPatch).length > 0
+      ? {
+          discovery: {
+            ...project.discovery,
+            ...Object.fromEntries(Object.entries(discoveryPatch).filter(([, v]) => v)),
+          },
+        }
+      : {};
+
+    const existingStakeholderNames = new Set(project.stakeholders.map((s) => s.name.toLowerCase()));
+    const newStakeholders = (result.suggestedStakeholders ?? [])
+      .filter((s) => !existingStakeholderNames.has(s.name.toLowerCase()))
+      .map((s) => ({
+        id: generateId(),
+        name: s.name,
+        role: s.role,
+        team: s.team,
+        influence: "medium" as const,
+        involvement: "end_user" as const,
+        concerns: s.concerns ?? [],
+        requiredActions: [],
+      }));
+
+    const existingSystemNames = new Set(project.systems.map((s) => s.name.toLowerCase()));
+    const newSystems = (result.suggestedSystems ?? [])
+      .filter((s) => !existingSystemNames.has(s.name.toLowerCase()))
+      .map((s) => ({
+        id: generateId(),
+        name: s.name,
+        type: toSystemType(s.type),
+        owner: "",
+        accessMethod: "unknown" as const,
+        apiAvailable: "unknown" as const,
+        authenticationMethod: "",
+        dataSensitivity: "low" as const,
+        integrationComplexity: "medium" as const,
+        notes: s.notes ?? "",
+      }));
+
+    updateProject({
+      ...customerPatch,
+      ...discoveryUpdate,
+      ...(newStakeholders.length > 0 ? { stakeholders: [...project.stakeholders, ...newStakeholders] } : {}),
+      ...(newSystems.length > 0 ? { systems: [...project.systems, ...newSystems] } : {}),
+    });
+  };
 
   return (
     <div className="p-8 space-y-8 max-w-4xl">
@@ -136,9 +507,7 @@ export default function WorkspaceDashboard() {
                   <span
                     className={cn(
                       "w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center text-[10px]",
-                      done
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "border-muted-foreground/40"
+                      done ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"
                     )}
                   >
                     {done ? "✓" : ""}
@@ -156,26 +525,18 @@ export default function WorkspaceDashboard() {
           {/* Top risks */}
           {topRisks.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Key Risks
-              </h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Key Risks</h2>
               <div className="space-y-2">
                 {topRisks.map((risk) => (
                   <div key={risk.id} className="flex items-start gap-2 text-sm">
-                    <Badge
-                      variant="outline"
-                      className={cn("text-xs shrink-0 capitalize", SEVERITY_COLOR[risk.severity])}
-                    >
+                    <Badge variant="outline" className={cn("text-xs shrink-0 capitalize", SEVERITY_COLOR[risk.severity])}>
                       {risk.severity}
                     </Badge>
                     <span className="text-muted-foreground">{risk.title}</span>
                   </div>
                 ))}
               </div>
-              <Link
-                href={`/workspace/${project.id}/risks`}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <Link href={`/workspace/${project.id}/risks`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                 View all {project.risks.length} risks →
               </Link>
             </div>
@@ -184,14 +545,9 @@ export default function WorkspaceDashboard() {
           {/* Next action */}
           {nextStep && (
             <div className="rounded-lg border bg-primary/5 border-primary/20 p-4 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                Next recommended action
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary">Next recommended action</p>
               <p className="text-sm font-medium">{nextStep.label}</p>
-              <Link
-                href={`/workspace/${project.id}/${nextStep.href}`}
-                className={buttonVariants({ size: "sm" })}
-              >
+              <Link href={`/workspace/${project.id}/${nextStep.href}`} className={buttonVariants({ size: "sm" })}>
                 Continue →
               </Link>
             </div>
@@ -204,7 +560,9 @@ export default function WorkspaceDashboard() {
               <span className={cn(
                 "text-lg font-bold",
                 readiness >= 70 ? "text-green-700" : readiness >= 40 ? "text-yellow-700" : "text-red-700"
-              )}>{readiness}<span className="text-xs font-normal text-muted-foreground">/100</span></span>
+              )}>
+                {readiness}<span className="text-xs font-normal text-muted-foreground">/100</span>
+              </span>
             </div>
             <div className="w-full bg-muted rounded-full h-1.5">
               <div
@@ -216,7 +574,11 @@ export default function WorkspaceDashboard() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              {readiness >= 80 ? "Ready for pilot launch" : readiness >= 50 ? "Nearing readiness — resolve open items" : "Key gaps remain — continue completing steps"}
+              {readiness >= 80
+                ? "Ready for pilot launch"
+                : readiness >= 50
+                  ? "Nearing readiness — resolve open items"
+                  : "Key gaps remain — continue completing steps"}
             </p>
           </div>
 
@@ -224,9 +586,9 @@ export default function WorkspaceDashboard() {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Workflow Steps", value: project.workflows.length },
-              { label: "Systems", value: project.systems.length },
-              { label: "Data Sources", value: project.dataSources.length },
-              { label: "Stakeholders", value: project.stakeholders.length },
+              { label: "Systems",        value: project.systems.length },
+              { label: "Data Sources",   value: project.dataSources.length },
+              { label: "Stakeholders",   value: project.stakeholders.length },
             ].map(({ label, value }) => (
               <div key={label} className="rounded-md border bg-muted/30 px-3 py-2">
                 <p className="text-xs text-muted-foreground">{label}</p>
@@ -236,6 +598,22 @@ export default function WorkspaceDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Open Actions */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Open Actions</h2>
+        <OpenActionsPanel items={missingInfo} projectId={project.id} />
+      </section>
+
+      {/* Notes & Context */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Notes & Context</h2>
+        <NotesCard
+          projectId={project.id}
+          initialNotes={project.meetingNotes ?? ""}
+          onApply={handleApplyExtraction}
+        />
+      </section>
     </div>
   );
 }

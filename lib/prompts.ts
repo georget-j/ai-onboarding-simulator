@@ -39,6 +39,7 @@ function serializeProject(project: OnboardingProject): string {
     stakeholders: project.stakeholders,
     risks: project.risks.slice(0, 8),
     pilotPlan: project.pilotPlan,
+    ...(project.meetingNotes ? { meetingNotes: project.meetingNotes } : {}),
   }, null, 2);
 }
 

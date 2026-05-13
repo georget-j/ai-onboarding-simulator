@@ -251,11 +251,14 @@ export type MissingInfoOwner =
   | "commercial"
   | "unknown";
 
+export type MissingInfoRelatedTab = "discovery" | "workflow" | "systems" | "pilot";
+
 export type MissingInfoItem = {
   id: string;
   item: string;
   whyItMatters: string;
   suggestedOwner: MissingInfoOwner;
+  relatedTab: MissingInfoRelatedTab;
 };
 
 // ────────────────────────────────────────────────────────────
@@ -361,4 +364,20 @@ export type OnboardingProject = {
   stakeholders: Stakeholder[];
   pilotPlan: PilotPlan | null;
   outputs: GeneratedArtifacts | null;
+  meetingNotes?: string;
+};
+
+// ────────────────────────────────────────────────────────────
+// Notes Extraction
+// ────────────────────────────────────────────────────────────
+
+export type NotesExtractionResult = {
+  discovery?: Partial<DiscoveryInput> & {
+    businessProblem?: string;
+    primaryUseCase?: string;
+    desiredOutcome?: string;
+  };
+  suggestedStakeholders?: { name: string; role: string; team: string; concerns: string[] }[];
+  suggestedSystems?: { name: string; type: string; notes: string }[];
+  summary: string;
 };
