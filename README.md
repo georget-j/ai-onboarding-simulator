@@ -2,6 +2,8 @@
 
 > Simulate how a forward-deployed AI team turns messy customer discovery into a deployment-ready onboarding plan.
 
+**Live demo:** [ai-onboarding-simulator.vercel.app](https://ai-onboarding-simulator.vercel.app)
+
 ---
 
 ## Why This Project Exists
