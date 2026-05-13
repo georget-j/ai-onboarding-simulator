@@ -1,22 +1,51 @@
 "use client";
 
+import { useMemo } from "react";
 import { useWorkspace } from "@/components/WorkspaceProvider";
+import { RequirementsMatrix } from "@/components/RequirementsMatrix";
+import { MissingInfoLog } from "@/components/MissingInfoLog";
+import { Separator } from "@/components/ui/separator";
+import { generateRequirements } from "@/lib/requirements-engine";
+import { detectMissingInfo } from "@/lib/missing-info-engine";
 
 export default function RequirementsPage() {
   const { project, loading } = useWorkspace();
+
+  const requirements = useMemo(
+    () => (project ? generateRequirements(project) : []),
+    [project]
+  );
+
+  const missingInfo = useMemo(
+    () => (project ? detectMissingInfo(project) : []),
+    [project]
+  );
 
   if (loading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!project) return <div className="p-8 text-sm text-muted-foreground">Project not found.</div>;
 
   return (
-    <div className="p-8 max-w-4xl space-y-6">
+    <div className="p-8 max-w-4xl space-y-10">
       <div>
         <h1 className="text-xl font-bold">Requirements Matrix</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Auto-generated requirements derived from discovery, workflows, and systems.
+          Auto-generated from discovery, workflow mapping, systems, and data sources. Filtered and grouped by category.
         </p>
       </div>
-      <p className="text-sm text-muted-foreground">Coming in Phase 6…</p>
+
+      <RequirementsMatrix requirements={requirements} />
+
+      <Separator />
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Missing Information Log</h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Items that must be resolved before pilot launch, grouped by responsible party.
+          </p>
+        </div>
+        <MissingInfoLog items={missingInfo} />
+      </section>
     </div>
   );
 }

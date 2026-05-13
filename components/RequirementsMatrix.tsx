@@ -1,0 +1,161 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import type { Requirement, RequirementCategory, RequirementPriority } from "@/lib/types";
+
+type Props = {
+  requirements: Requirement[];
+};
+
+const CATEGORY_LABELS: Record<RequirementCategory, string> = {
+  functional: "Functional",
+  technical: "Technical",
+  data: "Data",
+  integration: "Integration",
+  security: "Security",
+  compliance: "Compliance",
+  reporting: "Reporting",
+  support: "Support",
+  change_management: "Change Management",
+};
+
+const PRIORITY_COLORS: Record<RequirementPriority, string> = {
+  must_have: "bg-red-100 text-red-800 border-red-200",
+  should_have: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  nice_to_have: "bg-muted text-muted-foreground border-muted-foreground/30",
+};
+
+const STATUS_COLORS: Record<Requirement["status"], string> = {
+  confirmed: "bg-green-100 text-green-800 border-green-200",
+  assumption: "bg-blue-100 text-blue-800 border-blue-200",
+  needs_validation: "bg-orange-100 text-orange-800 border-orange-200",
+};
+
+const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as RequirementCategory[];
+const ALL_PRIORITIES = ["must_have", "should_have", "nice_to_have"] as RequirementPriority[];
+
+export function RequirementsMatrix({ requirements }: Props) {
+  const [filterCategory, setFilterCategory] = useState<RequirementCategory | "all">("all");
+  const [filterPriority, setFilterPriority] = useState<RequirementPriority | "all">("all");
+
+  const grouped = useMemo(() => {
+    const filtered = requirements.filter((r) => {
+      if (filterCategory !== "all" && r.category !== filterCategory) return false;
+      if (filterPriority !== "all" && r.priority !== filterPriority) return false;
+      return true;
+    });
+
+    const byCategory: Partial<Record<RequirementCategory, Requirement[]>> = {};
+    for (const r of filtered) {
+      if (!byCategory[r.category]) byCategory[r.category] = [];
+      byCategory[r.category]!.push(r);
+    }
+    return byCategory;
+  }, [requirements, filterCategory, filterPriority]);
+
+  const categoriesWithResults = ALL_CATEGORIES.filter((c) => grouped[c]?.length);
+  const mustHaveCount = requirements.filter((r) => r.priority === "must_have").length;
+  const needsValidationCount = requirements.filter((r) => r.status === "needs_validation").length;
+
+  if (requirements.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed px-6 py-12 text-center text-sm text-muted-foreground">
+        No requirements generated yet. Add workflow steps, systems, and data sources to generate requirements automatically.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Stats bar */}
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span>{requirements.length} total requirements</span>
+        <span>·</span>
+        <span className="text-red-700">{mustHaveCount} must-haves</span>
+        {needsValidationCount > 0 && (
+          <>
+            <span>·</span>
+            <span className="text-orange-700">{needsValidationCount} need validation</span>
+          </>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setFilterCategory("all")}
+          className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors", filterCategory === "all" ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
+        >
+          All categories
+        </button>
+        {ALL_CATEGORIES.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setFilterCategory(c)}
+            className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors", filterCategory === c ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
+          >
+            {CATEGORY_LABELS[c]}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setFilterPriority("all")}
+          className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors", filterPriority === "all" ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
+        >
+          All priorities
+        </button>
+        {ALL_PRIORITIES.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setFilterPriority(p)}
+            className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors", filterPriority === p ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
+          >
+            {p.replace(/_/g, " ")}
+          </button>
+        ))}
+      </div>
+
+      {/* Grouped requirements */}
+      {categoriesWithResults.length === 0 && (
+        <p className="text-sm text-muted-foreground py-4">No requirements match the selected filters.</p>
+      )}
+      {categoriesWithResults.map((category) => (
+        <section key={category} className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">
+            {CATEGORY_LABELS[category]} <span className="font-normal">({grouped[category]!.length})</span>
+          </h3>
+          <div className="space-y-2">
+            {grouped[category]!.map((req) => (
+              <div key={req.id} className="rounded-lg border bg-background px-4 py-3 space-y-1.5">
+                <div className="flex items-start gap-2 flex-wrap">
+                  <p className="text-sm font-medium flex-1 min-w-0">{req.title}</p>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[req.priority])}>
+                      {req.priority.replace(/_/g, " ")}
+                    </Badge>
+                    <Badge variant="outline" className={cn("text-xs", STATUS_COLORS[req.status])}>
+                      {req.status.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{req.description}</p>
+                <div className="flex gap-3 text-xs text-muted-foreground">
+                  <span>Owner: <span className="capitalize">{req.owner}</span></span>
+                  <span>·</span>
+                  <span>Source: <span className="capitalize">{req.source.replace(/_/g, " ")}</span></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
