@@ -5,6 +5,8 @@ import { useWorkspace } from "@/components/WorkspaceProvider";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { generateRisks } from "@/lib/risk-engine";
+import { detectMissingInfo } from "@/lib/missing-info-engine";
 
 const STEPS = [
   { href: "discovery", label: "Customer Discovery", key: "discovery" },
@@ -37,6 +39,41 @@ function isStepComplete(project: ReturnType<typeof useWorkspace>["project"], key
   }
 }
 
+function computeReadinessScore(project: ReturnType<typeof useWorkspace>["project"]): number {
+  if (!project) return 0;
+  let score = 0;
+
+  // Step completion: 5 points each, max 35
+  const STEP_KEYS = ["discovery", "workflow", "systems", "requirements", "risks", "pilot", "outputs"];
+  for (const key of STEP_KEYS) {
+    if (isStepComplete(project, key)) score += 5;
+  }
+
+  // Risk posture: deduct for open critical/high risks
+  const critOpen = project.risks.filter((r) => r.severity === "critical" && r.status === "open").length;
+  const highOpen = project.risks.filter((r) => r.severity === "high" && r.status === "open").length;
+  score -= critOpen * 5;
+  score -= highOpen * 2;
+
+  // Pilot plan completeness: up to 15
+  if (project.pilotPlan) {
+    if (project.pilotPlan.objective) score += 3;
+    if (project.pilotPlan.successMetrics.length >= 2) score += 6;
+    if (project.pilotPlan.launchCriteria.length >= 2) score += 3;
+    if (project.pilotPlan.rollbackCriteria.length >= 1) score += 3;
+  }
+
+  // Stakeholders mapped: up to 5
+  if (project.stakeholders.length >= 3) score += 5;
+  else if (project.stakeholders.length >= 1) score += 2;
+
+  // Missing info: deduct 1 per open item, max -10
+  const missingInfo = detectMissingInfo(project);
+  score -= Math.min(missingInfo.length, 10);
+
+  return Math.max(0, Math.min(100, score));
+}
+
 export default function WorkspaceDashboard() {
   const { project, loading } = useWorkspace();
 
@@ -58,7 +95,8 @@ export default function WorkspaceDashboard() {
   }
 
   const completedCount = STEPS.filter((s) => isStepComplete(project, s.key)).length;
-  const topRisks = [...project.risks]
+  const allRisks = project.risks;
+  const topRisks = [...allRisks]
     .sort((a, b) => {
       const order = { critical: 0, high: 1, medium: 2, low: 3 };
       return (order[a.severity] ?? 4) - (order[b.severity] ?? 4);
@@ -66,6 +104,7 @@ export default function WorkspaceDashboard() {
     .slice(0, 3);
 
   const nextStep = STEPS.find((s) => !isStepComplete(project, s.key));
+  const readiness = computeReadinessScore(project);
 
   return (
     <div className="p-8 space-y-8 max-w-4xl">
@@ -157,6 +196,29 @@ export default function WorkspaceDashboard() {
               </Link>
             </div>
           )}
+
+          {/* Readiness score */}
+          <div className="rounded-lg border bg-muted/20 px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Onboarding Readiness</p>
+              <span className={cn(
+                "text-lg font-bold",
+                readiness >= 70 ? "text-green-700" : readiness >= 40 ? "text-yellow-700" : "text-red-700"
+              )}>{readiness}<span className="text-xs font-normal text-muted-foreground">/100</span></span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-1.5">
+              <div
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  readiness >= 70 ? "bg-green-600" : readiness >= 40 ? "bg-yellow-500" : "bg-red-500"
+                )}
+                style={{ width: `${readiness}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {readiness >= 80 ? "Ready for pilot launch" : readiness >= 50 ? "Nearing readiness — resolve open items" : "Key gaps remain — continue completing steps"}
+            </p>
+          </div>
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-3">

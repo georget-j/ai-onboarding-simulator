@@ -50,9 +50,20 @@ This project is a working simulator of that process. It demonstrates how to go f
 
 ---
 
+## Tests
+
+```bash
+npm test        # run all 41 tests
+npm run test:watch   # watch mode
+```
+
+Test coverage: scenarios loading, requirements engine (fintech/legaltech rules), risk engine (9 categories), markdown export (15-section structure).
+
+---
+
 ## Tech Stack
 
-- **Next.js 15** (App Router, TypeScript)
+- **Next.js 16** (App Router, TypeScript)
 - **Tailwind CSS v4** + **shadcn/ui**
 - **OpenAI** via Vercel AI SDK (structured outputs)
 - **Browser sessionStorage** (local-first, no backend required for MVP)
@@ -64,7 +75,7 @@ This project is a working simulator of that process. It demonstrates how to go f
 ## Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-onboarding-simulator
+git clone https://github.com/georget-j/ai-onboarding-simulator
 cd ai-onboarding-simulator
 npm install
 cp .env.local.example .env.local
