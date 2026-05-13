@@ -11,7 +11,83 @@ import { cn } from "@/lib/utils";
 import { generateId } from "@/lib/utils";
 import type { CustomerSystem, DataSource, SystemType, AccessMethod, DataSensitivity, IntegrationComplexity, DataType, DataFormat, DataQuality, AccessStatus } from "@/lib/types";
 
-// ─── Systems Table ─────────────────────────────────────────────────────────────
+// ─── Label maps ────────────────────────────────────────────────────────────────
+
+const SYSTEM_TYPE_LABELS: Record<SystemType, string> = {
+  crm: "CRM",
+  case_management: "Case Management",
+  document_management: "Document Management",
+  data_warehouse: "Data Warehouse",
+  ticketing: "Ticketing",
+  email: "Email",
+  chat: "Chat",
+  core_system: "Core System",
+  custom: "Custom",
+  other: "Other",
+};
+
+const ACCESS_METHOD_LABELS: Record<AccessMethod, string> = {
+  api: "API",
+  database: "Database",
+  csv_export: "CSV Export",
+  manual_upload: "Manual Upload",
+  webhook: "Webhook",
+  unknown: "Unknown",
+};
+
+const DATA_TYPE_LABELS: Record<DataType, string> = {
+  documents: "Documents",
+  tickets: "Tickets",
+  customer_records: "Customer Records",
+  transactions: "Transactions",
+  contracts: "Contracts",
+  messages: "Messages",
+  logs: "Logs",
+  other: "Other",
+};
+
+const DATA_FORMAT_LABELS: Record<DataFormat, string> = {
+  pdf: "PDF",
+  docx: "DOCX",
+  csv: "CSV",
+  xlsx: "XLSX",
+  json: "JSON",
+  api: "API",
+  database: "Database",
+  mixed: "Mixed",
+  unknown: "Unknown",
+};
+
+// ─── Colour maps ───────────────────────────────────────────────────────────────
+
+const SENSITIVITY_COLOR: Record<DataSensitivity, string> = {
+  low: "bg-green-100 text-green-800 border-green-200",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  high: "bg-orange-100 text-orange-800 border-orange-200",
+  regulated: "bg-red-100 text-red-800 border-red-200",
+};
+
+const COMPLEXITY_COLOR: Record<IntegrationComplexity, string> = {
+  low: "bg-green-100 text-green-800 border-green-200",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  high: "bg-orange-100 text-orange-800 border-orange-200",
+};
+
+const ACCESS_STATUS_COLOR: Record<AccessStatus, string> = {
+  available: "bg-green-100 text-green-800 border-green-200",
+  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  blocked: "bg-red-100 text-red-800 border-red-200",
+  unknown: "bg-muted text-muted-foreground border-muted-foreground/30",
+};
+
+const QUALITY_COLOR: Record<DataQuality, string> = {
+  good: "bg-green-100 text-green-800 border-green-200",
+  mixed: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  poor: "bg-red-100 text-red-800 border-red-200",
+  unknown: "bg-muted text-muted-foreground border-muted-foreground/30",
+};
+
+// ─── Factories ─────────────────────────────────────────────────────────────────
 
 function newSystem(): CustomerSystem {
   return {
@@ -28,18 +104,23 @@ function newSystem(): CustomerSystem {
   };
 }
 
-const SENSITIVITY_COLOR: Record<DataSensitivity, string> = {
-  low: "bg-green-100 text-green-800 border-green-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  high: "bg-orange-100 text-orange-800 border-orange-200",
-  regulated: "bg-red-100 text-red-800 border-red-200",
-};
+function newDataSource(): DataSource {
+  return {
+    id: generateId(),
+    name: "",
+    sourceSystem: "",
+    dataType: "other",
+    format: "unknown",
+    quality: "unknown",
+    volumeEstimate: "",
+    updateFrequency: "",
+    pii: "unknown",
+    accessStatus: "unknown",
+    openQuestions: [],
+  };
+}
 
-const COMPLEXITY_COLOR: Record<IntegrationComplexity, string> = {
-  low: "bg-green-100 text-green-800 border-green-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  high: "bg-orange-100 text-orange-800 border-orange-200",
-};
+// ─── System Row ────────────────────────────────────────────────────────────────
 
 type SystemRowProps = {
   system: CustomerSystem;
@@ -55,7 +136,7 @@ function SystemRow({ system, onUpdate, onRemove }: SystemRowProps) {
     <div className={cn("rounded-lg border bg-background", apiFlag && "border-orange-200 bg-orange-50/30", open && "ring-1 ring-primary/20")}>
       <div className="flex items-center gap-3 px-4 py-3">
         {apiFlag && (
-          <span className="text-orange-600 text-xs shrink-0" title="No API available">⚠</span>
+          <span className="text-orange-500 text-xs shrink-0 font-bold" title="No API available">⚠</span>
         )}
         <div className="flex-1 min-w-0">
           {open ? (
@@ -65,12 +146,14 @@ function SystemRow({ system, onUpdate, onRemove }: SystemRowProps) {
           )}
         </div>
         <div className="hidden sm:flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground capitalize">{system.type.replace("_", " ")}</span>
+          <span className="text-xs text-muted-foreground">{SYSTEM_TYPE_LABELS[system.type]}</span>
+          <span className="text-xs text-muted-foreground">·</span>
+          <span className="text-xs text-muted-foreground">{ACCESS_METHOD_LABELS[system.accessMethod]}</span>
           <Badge variant="outline" className={cn("text-xs", SENSITIVITY_COLOR[system.dataSensitivity])}>
-            {system.dataSensitivity}
+            {system.dataSensitivity.charAt(0).toUpperCase() + system.dataSensitivity.slice(1)} data
           </Badge>
           <Badge variant="outline" className={cn("text-xs", COMPLEXITY_COLOR[system.integrationComplexity])}>
-            {system.integrationComplexity} complexity
+            {system.integrationComplexity.charAt(0).toUpperCase() + system.integrationComplexity.slice(1)} complexity
           </Badge>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -91,8 +174,8 @@ function SystemRow({ system, onUpdate, onRemove }: SystemRowProps) {
                 <Select value={system.type} onValueChange={(v) => onUpdate({ type: v as SystemType })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(["crm","case_management","document_management","data_warehouse","ticketing","email","chat","core_system","custom","other"] as SystemType[]).map((t) => (
-                      <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>
+                    {(Object.entries(SYSTEM_TYPE_LABELS) as [SystemType, string][]).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -106,8 +189,8 @@ function SystemRow({ system, onUpdate, onRemove }: SystemRowProps) {
                 <Select value={system.accessMethod} onValueChange={(v) => onUpdate({ accessMethod: v as AccessMethod })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(["api","database","csv_export","manual_upload","webhook","unknown"] as AccessMethod[]).map((m) => (
-                      <SelectItem key={m} value={m}>{m.replace(/_/g, " ")}</SelectItem>
+                    {(Object.entries(ACCESS_METHOD_LABELS) as [AccessMethod, string][]).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -165,37 +248,7 @@ function SystemRow({ system, onUpdate, onRemove }: SystemRowProps) {
   );
 }
 
-// ─── Data Sources Table ────────────────────────────────────────────────────────
-
-function newDataSource(): DataSource {
-  return {
-    id: generateId(),
-    name: "",
-    sourceSystem: "",
-    dataType: "other",
-    format: "unknown",
-    quality: "unknown",
-    volumeEstimate: "",
-    updateFrequency: "",
-    pii: "unknown",
-    accessStatus: "unknown",
-    openQuestions: [],
-  };
-}
-
-const ACCESS_STATUS_COLOR: Record<AccessStatus, string> = {
-  available: "bg-green-100 text-green-800 border-green-200",
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  blocked: "bg-red-100 text-red-800 border-red-200",
-  unknown: "bg-muted text-muted-foreground border-muted-foreground/30",
-};
-
-const QUALITY_COLOR: Record<DataQuality, string> = {
-  good: "bg-green-100 text-green-800 border-green-200",
-  mixed: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  poor: "bg-red-100 text-red-800 border-red-200",
-  unknown: "bg-muted text-muted-foreground border-muted-foreground/30",
-};
+// ─── Data Source Row ───────────────────────────────────────────────────────────
 
 type DataSourceRowProps = {
   source: DataSource;
@@ -210,7 +263,7 @@ function DataSourceRow({ source, onUpdate, onRemove }: DataSourceRowProps) {
   return (
     <div className={cn("rounded-lg border bg-background", blocked && "border-red-200 bg-red-50/30", open && "ring-1 ring-primary/20")}>
       <div className="flex items-center gap-3 px-4 py-3">
-        {blocked && <span className="text-red-600 text-xs shrink-0" title="Access blocked">✕</span>}
+        {blocked && <span className="text-red-600 text-xs shrink-0 font-bold" title="Access blocked">✕</span>}
         <div className="flex-1 min-w-0">
           {open ? (
             <Input value={source.name} onChange={(e) => onUpdate({ name: e.target.value })} placeholder="Data source name…" className="h-7 text-sm font-medium" />
@@ -220,11 +273,11 @@ function DataSourceRow({ source, onUpdate, onRemove }: DataSourceRowProps) {
         </div>
         <div className="hidden sm:flex items-center gap-2 shrink-0">
           {source.sourceSystem && !open && <span className="text-xs text-muted-foreground">{source.sourceSystem}</span>}
-          <Badge variant="outline" className={cn("text-xs capitalize", ACCESS_STATUS_COLOR[source.accessStatus])}>
-            {source.accessStatus}
+          <Badge variant="outline" className={cn("text-xs", ACCESS_STATUS_COLOR[source.accessStatus])}>
+            {source.accessStatus.charAt(0).toUpperCase() + source.accessStatus.slice(1)}
           </Badge>
-          <Badge variant="outline" className={cn("text-xs capitalize", QUALITY_COLOR[source.quality])}>
-            {source.quality} quality
+          <Badge variant="outline" className={cn("text-xs", QUALITY_COLOR[source.quality])}>
+            {source.quality.charAt(0).toUpperCase() + source.quality.slice(1)} quality
           </Badge>
           {source.pii === true && (
             <Badge variant="outline" className="text-xs bg-purple-100 text-purple-800 border-purple-200">PII</Badge>
@@ -252,8 +305,8 @@ function DataSourceRow({ source, onUpdate, onRemove }: DataSourceRowProps) {
                 <Select value={source.dataType} onValueChange={(v) => onUpdate({ dataType: v as DataType })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(["documents","tickets","customer_records","transactions","contracts","messages","logs","other"] as DataType[]).map((t) => (
-                      <SelectItem key={t} value={t}>{t.replace(/_/g, " ")}</SelectItem>
+                    {(Object.entries(DATA_TYPE_LABELS) as [DataType, string][]).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -263,8 +316,8 @@ function DataSourceRow({ source, onUpdate, onRemove }: DataSourceRowProps) {
                 <Select value={source.format} onValueChange={(v) => onUpdate({ format: v as DataFormat })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(["pdf","docx","csv","xlsx","json","api","database","mixed","unknown"] as DataFormat[]).map((f) => (
-                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    {(Object.entries(DATA_FORMAT_LABELS) as [DataFormat, string][]).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -313,10 +366,10 @@ function DataSourceRow({ source, onUpdate, onRemove }: DataSourceRowProps) {
               </div>
               <div className="space-y-1.5">
                 <Label>Update Frequency</Label>
-                <Input value={source.updateFrequency} onChange={(e) => onUpdate({ updateFrequency: e.target.value })} placeholder="e.g. real-time, daily…" />
+                <Input value={source.updateFrequency} onChange={(e) => onUpdate({ updateFrequency: e.target.value })} placeholder="e.g. Real-time, daily…" />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
-                <Label>Open Questions <span className="text-muted-foreground">(comma-separated)</span></Label>
+                <Label>Open Questions <span className="text-muted-foreground font-normal text-xs">(comma-separated)</span></Label>
                 <Input
                   value={source.openQuestions.join(", ")}
                   onChange={(e) => onUpdate({ openQuestions: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })}
@@ -349,21 +402,31 @@ export function SystemsDataSourceEditor({ systems, dataSources, onSystemsChange,
     onDataSourcesChange(dataSources.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   const removeSource = (id: string) => onDataSourcesChange(dataSources.filter((s) => s.id !== id));
 
+  const systemsNeedingAttention = systems.filter((s) => s.apiAvailable === false || s.integrationComplexity === "high").length;
+  const sourcesNeedingAttention = dataSources.filter((s) => s.accessStatus === "blocked" || s.quality === "poor").length;
+
   return (
     <div className="space-y-10">
       {/* Systems */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Customer Systems</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Systems the AI product must integrate with. Rows flagged ⚠ have no API.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Systems the AI product must read from or write to. Click Edit to configure integration details.</p>
           </div>
-          <span className="text-xs text-muted-foreground">{systems.length} system{systems.length !== 1 ? "s" : ""}</span>
+          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+            <span className="text-xs text-muted-foreground">{systems.length} system{systems.length !== 1 ? "s" : ""}</span>
+            {systemsNeedingAttention > 0 && (
+              <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                {systemsNeedingAttention} need attention
+              </Badge>
+            )}
+          </div>
         </div>
 
         {systems.length === 0 && (
           <div className="rounded-lg border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
-            No systems added yet.
+            No systems added yet. Add systems the AI product will need to integrate with.
           </div>
         )}
         {systems.map((s) => (
@@ -382,17 +445,24 @@ export function SystemsDataSourceEditor({ systems, dataSources, onSystemsChange,
 
       {/* Data Sources */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Data Sources</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Datasets the AI model will consume. Rows flagged ✕ have blocked access.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Datasets the AI model will train on or use for inference. Flag PII and access issues here.</p>
           </div>
-          <span className="text-xs text-muted-foreground">{dataSources.length} source{dataSources.length !== 1 ? "s" : ""}</span>
+          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+            <span className="text-xs text-muted-foreground">{dataSources.length} source{dataSources.length !== 1 ? "s" : ""}</span>
+            {sourcesNeedingAttention > 0 && (
+              <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-200">
+                {sourcesNeedingAttention} need attention
+              </Badge>
+            )}
+          </div>
         </div>
 
         {dataSources.length === 0 && (
           <div className="rounded-lg border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
-            No data sources added yet.
+            No data sources added yet. Add datasets the AI model will consume.
           </div>
         )}
         {dataSources.map((s) => (

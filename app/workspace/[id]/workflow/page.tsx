@@ -2,6 +2,8 @@
 
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { WorkflowStepEditor } from "@/components/WorkflowStepEditor";
+import { WorkflowVisualiser } from "@/components/WorkflowVisualiser";
+import { Separator } from "@/components/ui/separator";
 
 export default function WorkflowPage() {
   const { project, loading, updateProject } = useWorkspace();
@@ -30,6 +32,16 @@ export default function WorkflowPage() {
         steps={project.workflows}
         onChange={(workflows) => updateProject({ workflows })}
       />
+
+      {project.workflows.length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Workflow Overview</h2>
+            <WorkflowVisualiser steps={project.workflows} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import type { DeploymentRisk, RiskCategory, RiskSeverity, RiskLikelihood, RiskSt
 type Props = {
   risks: DeploymentRisk[];
   onStatusChange?: (id: string, status: RiskStatus) => void;
+  onDelete?: (id: string) => void;
 };
 
 const SEVERITY_COLORS: Record<RiskSeverity, string> = {
@@ -45,7 +46,7 @@ const CATEGORY_LABELS: Record<RiskCategory, string> = {
 
 const SEVERITY_ORDER: Record<RiskSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
-export function RiskRegister({ risks, onStatusChange }: Props) {
+export function RiskRegister({ risks, onStatusChange, onDelete }: Props) {
   const [filterSeverity, setFilterSeverity] = useState<RiskSeverity | "all">("all");
   const [filterCategory, setFilterCategory] = useState<RiskCategory | "all">("all");
   const [filterStatus, setFilterStatus] = useState<RiskStatus | "open_only" | "all">("open_only");
@@ -83,36 +84,43 @@ export function RiskRegister({ risks, onStatusChange }: Props) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        {/* Severity */}
-        {(["all", "critical", "high", "medium", "low"] as const).map((s) => (
+        {([
+          ["all", "All Severities"],
+          ["critical", "Critical"],
+          ["high", "High"],
+          ["medium", "Medium"],
+          ["low", "Low"],
+        ] as const).map(([val, label]) => (
           <button
-            key={s}
+            key={val}
             type="button"
-            onClick={() => setFilterSeverity(s)}
-            className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors capitalize",
-              filterSeverity === s ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground"
+            onClick={() => setFilterSeverity(val)}
+            className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors",
+              filterSeverity === val ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground"
             )}
           >
-            {s === "all" ? "All severities" : s}
+            {label}
           </button>
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setFilterStatus("open_only")}
-          className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors", filterStatus === "open_only" ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
-        >
-          Open only
-        </button>
-        {(["all", "open", "mitigating", "accepted", "resolved"] as const).map((s) => (
+        {([
+          ["open_only", "Open Only"],
+          ["all", "All Statuses"],
+          ["open", "Open"],
+          ["mitigating", "Mitigating"],
+          ["accepted", "Accepted"],
+          ["resolved", "Resolved"],
+        ] as const).map(([val, label]) => (
           <button
-            key={s}
+            key={val}
             type="button"
-            onClick={() => setFilterStatus(s)}
-            className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors capitalize", filterStatus === s ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
+            onClick={() => setFilterStatus(val)}
+            className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors",
+              filterStatus === val ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground"
+            )}
           >
-            {s === "all" ? "All statuses" : s}
+            {label}
           </button>
         ))}
       </div>
@@ -123,7 +131,7 @@ export function RiskRegister({ risks, onStatusChange }: Props) {
       )}
       <div className="space-y-2">
         {filtered.map((risk) => (
-          <RiskRow key={risk.id} risk={risk} onStatusChange={onStatusChange} />
+          <RiskRow key={risk.id} risk={risk} onStatusChange={onStatusChange} onDelete={onDelete} />
         ))}
       </div>
     </div>
@@ -133,9 +141,10 @@ export function RiskRegister({ risks, onStatusChange }: Props) {
 type RiskRowProps = {
   risk: DeploymentRisk;
   onStatusChange?: (id: string, status: RiskStatus) => void;
+  onDelete?: (id: string) => void;
 };
 
-function RiskRow({ risk, onStatusChange }: RiskRowProps) {
+function RiskRow({ risk, onStatusChange, onDelete }: RiskRowProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -157,6 +166,11 @@ function RiskRow({ risk, onStatusChange }: RiskRowProps) {
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {risk.source === "manual" && (
+            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+              Custom
+            </Badge>
+          )}
           <Badge variant="outline" className={cn("text-xs capitalize", SEVERITY_COLORS[risk.severity])}>
             {risk.severity}
           </Badge>
@@ -189,25 +203,37 @@ function RiskRow({ risk, onStatusChange }: RiskRowProps) {
           >
             {expanded ? "Less" : "More"}
           </button>
+          {risk.source === "manual" && onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(risk.id)}
+              className="text-xs text-muted-foreground hover:text-destructive px-1.5 py-1 rounded hover:bg-destructive/10 transition-colors"
+              title="Delete risk"
+            >
+              ×
+            </button>
+          )}
         </div>
       </div>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t pt-3 text-sm">
-          <p className="text-muted-foreground text-xs leading-relaxed">{risk.description}</p>
+        <div className="px-4 pb-4 space-y-3 border-t pt-3">
+          {risk.description && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{risk.description}</p>
+          )}
           <div>
-            <p className="text-xs font-semibold text-foreground mb-1">Mitigation</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">{risk.mitigation || "No mitigation defined."}</p>
+            <p className="text-sm font-semibold text-foreground mb-1">Mitigation</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{risk.mitigation || "No mitigation defined."}</p>
           </div>
           {risk.escalationTrigger && (
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1">Escalation trigger</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{risk.escalationTrigger}</p>
+              <p className="text-sm font-semibold text-foreground mb-1">Escalation trigger</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{risk.escalationTrigger}</p>
             </div>
           )}
-          <div className="flex gap-4 text-xs text-muted-foreground">
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-1">
             <span>Category: {CATEGORY_LABELS[risk.category]}</span>
-            <span>Owner: <span className="capitalize">{risk.owner}</span></span>
+            {risk.owner && <span>Owner: <span className="capitalize">{risk.owner}</span></span>}
           </div>
         </div>
       )}

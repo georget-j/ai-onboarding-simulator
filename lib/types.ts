@@ -288,6 +288,7 @@ export type DeploymentRisk = {
   mitigation: string;
   escalationTrigger: string;
   status: RiskStatus;
+  source?: "auto" | "manual";
 };
 
 // ────────────────────────────────────────────────────────────

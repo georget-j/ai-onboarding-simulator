@@ -7,6 +7,8 @@ import type { Requirement, RequirementCategory, RequirementPriority } from "@/li
 
 type Props = {
   requirements: Requirement[];
+  manualIds?: Set<string>;
+  onDelete?: (id: string) => void;
 };
 
 const CATEGORY_LABELS: Record<RequirementCategory, string> = {
@@ -36,7 +38,7 @@ const STATUS_COLORS: Record<Requirement["status"], string> = {
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as RequirementCategory[];
 const ALL_PRIORITIES = ["must_have", "should_have", "nice_to_have"] as RequirementPriority[];
 
-export function RequirementsMatrix({ requirements }: Props) {
+export function RequirementsMatrix({ requirements, manualIds, onDelete }: Props) {
   const [filterCategory, setFilterCategory] = useState<RequirementCategory | "all">("all");
   const [filterPriority, setFilterPriority] = useState<RequirementPriority | "all">("all");
 
@@ -117,7 +119,7 @@ export function RequirementsMatrix({ requirements }: Props) {
             onClick={() => setFilterPriority(p)}
             className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors", filterPriority === p ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground")}
           >
-            {p.replace(/_/g, " ")}
+            {p === "must_have" ? "Must Have" : p === "should_have" ? "Should Have" : "Nice to Have"}
           </button>
         ))}
       </div>
@@ -132,27 +134,43 @@ export function RequirementsMatrix({ requirements }: Props) {
             {CATEGORY_LABELS[category]} <span className="font-normal">({grouped[category]!.length})</span>
           </h3>
           <div className="space-y-2">
-            {grouped[category]!.map((req) => (
-              <div key={req.id} className="rounded-lg border bg-background px-4 py-3 space-y-1.5">
-                <div className="flex items-start gap-2 flex-wrap">
-                  <p className="text-sm font-medium flex-1 min-w-0">{req.title}</p>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[req.priority])}>
-                      {req.priority.replace(/_/g, " ")}
-                    </Badge>
-                    <Badge variant="outline" className={cn("text-xs", STATUS_COLORS[req.status])}>
-                      {req.status.replace(/_/g, " ")}
-                    </Badge>
+            {grouped[category]!.map((req) => {
+              const isManual = manualIds?.has(req.id);
+              const priorityLabel = req.priority === "must_have" ? "Must Have" : req.priority === "should_have" ? "Should Have" : "Nice to Have";
+              const statusLabel = req.status === "needs_validation" ? "Needs Validation" : req.status.charAt(0).toUpperCase() + req.status.slice(1);
+              return (
+                <div key={req.id} className={cn("rounded-lg border bg-background px-4 py-3 space-y-1.5", isManual && "border-primary/30")}>
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <p className="text-sm font-medium flex-1 min-w-0">{req.title}</p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isManual && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Custom</Badge>}
+                      <Badge variant="outline" className={cn("text-xs", PRIORITY_COLORS[req.priority])}>
+                        {priorityLabel}
+                      </Badge>
+                      <Badge variant="outline" className={cn("text-xs", STATUS_COLORS[req.status])}>
+                        {statusLabel}
+                      </Badge>
+                      {isManual && onDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(req.id)}
+                          className="text-xs text-destructive/60 hover:text-destructive ml-1 transition-colors"
+                          title="Remove requirement"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{req.description}</p>
+                  <div className="flex gap-3 text-xs text-muted-foreground">
+                    <span>Owner: <span className="capitalize">{req.owner}</span></span>
+                    <span>·</span>
+                    <span>Source: <span className="capitalize">{req.source.replace(/_/g, " ")}</span></span>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{req.description}</p>
-                <div className="flex gap-3 text-xs text-muted-foreground">
-                  <span>Owner: <span className="capitalize">{req.owner}</span></span>
-                  <span>·</span>
-                  <span>Source: <span className="capitalize">{req.source.replace(/_/g, " ")}</span></span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       ))}

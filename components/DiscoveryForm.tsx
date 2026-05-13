@@ -64,9 +64,14 @@ export function DiscoveryForm({ project, onUpdate }: Props) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {["fintech", "legaltech", "healthcare", "insurance", "industrial", "enterprise_saas", "public_sector", "other"].map((v) => (
-                  <SelectItem key={v} value={v}>{v.replace("_", " ")}</SelectItem>
-                ))}
+                <SelectItem value="fintech">Fintech</SelectItem>
+                <SelectItem value="legaltech">Legaltech</SelectItem>
+                <SelectItem value="healthcare">Healthcare</SelectItem>
+                <SelectItem value="insurance">Insurance</SelectItem>
+                <SelectItem value="industrial">Industrial</SelectItem>
+                <SelectItem value="enterprise_saas">Enterprise SaaS</SelectItem>
+                <SelectItem value="public_sector">Public Sector</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>

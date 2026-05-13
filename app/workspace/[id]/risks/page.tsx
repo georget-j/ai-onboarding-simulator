@@ -1,50 +1,78 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useWorkspace } from "@/components/WorkspaceProvider";
 import { RiskRegister } from "@/components/RiskRegister";
+import { AddRiskForm } from "@/components/AddRiskForm";
 import { generateRisks } from "@/lib/risk-engine";
-import type { RiskStatus } from "@/lib/types";
+import type { DeploymentRisk, RiskStatus } from "@/lib/types";
 
 export default function RisksPage() {
   const { project, loading, updateProject } = useWorkspace();
+  const [showForm, setShowForm] = useState(false);
 
-  const generatedRisks = useMemo(
-    () => (project ? generateRisks(project) : []),
-    [project]
-  );
-
-  // Merge generated risks with any pre-seeded risks from the scenario,
-  // deduplicating by title so we don't double-count
-  const allRisks = useMemo(() => {
-    if (!project) return [];
-    const seededTitles = new Set(project.risks.map((r) => r.title));
-    const newRisks = generatedRisks.filter((r) => !seededTitles.has(r.title));
-    return [...project.risks, ...newRisks];
-  }, [project, generatedRisks]);
+  // On first visit per project, merge generated risks into project.risks so
+  // status changes persist across reloads.
+  useEffect(() => {
+    if (!project) return;
+    const generated = generateRisks(project);
+    const existingTitles = new Set(project.risks.map((r) => r.title));
+    const newRisks = generated
+      .filter((r) => !existingTitles.has(r.title))
+      .map((r) => ({ ...r, source: "auto" as const }));
+    if (newRisks.length > 0) {
+      updateProject({ risks: [...project.risks, ...newRisks] });
+    }
+  }, [project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
   if (!project) return <div className="p-8 text-sm text-muted-foreground">Project not found.</div>;
 
+  const handleAddRisk = (risk: DeploymentRisk) => {
+    updateProject({ risks: [...project.risks, risk] });
+    setShowForm(false);
+  };
+
   const handleStatusChange = (id: string, status: RiskStatus) => {
-    const updatedRisks = allRisks.map((r) => (r.id === id ? { ...r, status } : r));
-    // Only persist changes to the seeded (project-owned) risks; generated risks are stateless
-    const seededIds = new Set(project.risks.map((r) => r.id));
-    if (seededIds.has(id)) {
-      updateProject({ risks: updatedRisks.filter((r) => seededIds.has(r.id)) });
-    }
+    updateProject({ risks: project.risks.map((r) => (r.id === id ? { ...r, status } : r)) });
+  };
+
+  const handleDeleteRisk = (id: string) => {
+    updateProject({ risks: project.risks.filter((r) => r.id !== id) });
   };
 
   return (
     <div className="p-8 max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold">Risk Register</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Deployment risks identified from project context. Includes pre-seeded scenario risks and auto-generated risks.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold">Risk Register</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Deployment risks identified from project context. Status changes are saved automatically.
+          </p>
+        </div>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted/50 transition-colors shrink-0"
+          >
+            + Add Risk
+          </button>
+        )}
       </div>
 
-      <RiskRegister risks={allRisks} onStatusChange={handleStatusChange} />
+      {showForm && (
+        <AddRiskForm
+          onSave={handleAddRisk}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+
+      <RiskRegister
+        risks={project.risks}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDeleteRisk}
+      />
     </div>
   );
 }
